@@ -1,0 +1,2584 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Solar Floating Farm — IoT Dashboard</title>
+    <!-- Google Fonts: Inter & Outfit -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=Outfit:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+    <!-- FontAwesome Icons -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <!-- Chart.js -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <style>
+        /* Modern Glassmorphic CSS Design System with Dynamic Light & Dark Mode */
+        
+        /* Dark Theme Variables */
+        body.theme-dark {
+            --bg-gradient: radial-gradient(circle at 50% 0%, #0b252c 0%, #051319 50%, #03080b 100%);
+            --card-bg: rgba(10, 25, 30, 0.55);
+            --card-border: rgba(255, 255, 255, 0.06);
+            --card-hover-border: rgba(20, 184, 166, 0.25);
+            --text-primary: #f8fafc;
+            --text-secondary: #94a3b8;
+            --text-muted: #64748b;
+            --header-bg: rgba(15, 32, 39, 0.4);
+            --sensor-card-bg: rgba(255, 255, 255, 0.015);
+            --sensor-card-border: rgba(255, 255, 255, 0.04);
+            --sensor-card-hover-bg: rgba(255, 255, 255, 0.03);
+            --sensor-card-hover-border: rgba(255, 255, 255, 0.08);
+            --widget-item-bg: rgba(255, 255, 255, 0.03);
+            --widget-item-border: rgba(255, 255, 255, 0.03);
+            --input-bg: rgba(255, 255, 255, 0.05);
+            --input-border: rgba(255, 255, 255, 0.08);
+            --water-visualizer-bg: rgba(0, 0, 0, 0.25);
+        }
+
+        /* Light Theme Variables */
+        body.theme-light {
+            --bg-gradient: radial-gradient(circle at 50% 0%, #bae6fd 0%, #e0f2fe 50%, #f1f5f9 100%);
+            --card-bg: rgba(255, 255, 255, 0.65);
+            --card-border: rgba(0, 0, 0, 0.08);
+            --card-hover-border: rgba(20, 184, 166, 0.45);
+            --text-primary: #0f172a;
+            --text-secondary: #475569;
+            --text-muted: #64748b;
+            --header-bg: rgba(255, 255, 255, 0.7);
+            --sensor-card-bg: rgba(0, 0, 0, 0.025);
+            --sensor-card-border: rgba(0, 0, 0, 0.05);
+            --sensor-card-hover-bg: rgba(0, 0, 0, 0.045);
+            --sensor-card-hover-border: rgba(0, 0, 0, 0.08);
+            --widget-item-bg: rgba(0, 0, 0, 0.03);
+            --widget-item-border: rgba(0, 0, 0, 0.03);
+            --input-bg: rgba(0, 0, 0, 0.04);
+            --input-border: rgba(0, 0, 0, 0.08);
+            --water-visualizer-bg: rgba(255, 255, 255, 0.3);
+        }
+
+        /* Common Non-theme Colors & Utilities */
+        :root {
+            --primary: #14b8a6; /* Teal */
+            --primary-glow: rgba(20, 184, 166, 0.35);
+            
+            --solar-gold: #f59e0b; /* Amber */
+            --solar-glow: rgba(245, 158, 11, 0.35);
+            
+            --pond-blue: #0ea5e9; /* Sky Blue */
+            --pond-glow: rgba(14, 165, 233, 0.35);
+            
+            --crop-green: #10b981; /* Emerald */
+            --crop-glow: rgba(16, 185, 129, 0.35);
+            
+            --safe: #10b981;
+            --warning: #f59e0b;
+            --danger: #ef4444;
+            --neutral: #64748b;
+            
+            --font-main: 'Inter', sans-serif;
+            --font-display: 'Outfit', sans-serif;
+        }
+
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+            user-select: none;
+        }
+
+        body {
+            background: var(--bg-gradient);
+            color: var(--text-primary);
+            font-family: var(--font-main);
+            min-height: 100vh;
+            padding: 20px;
+            overflow-x: hidden;
+            transition: background 0.8s ease, color 0.5s ease;
+        }
+
+        /* App Layout Container */
+        .app-container {
+            max-width: 1600px;
+            margin: 0 auto;
+            display: flex;
+            flex-direction: column;
+            gap: 20px;
+        }
+
+        /* Top Header */
+        header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 20px 24px;
+            background: var(--header-bg);
+            backdrop-filter: blur(12px);
+            -webkit-backdrop-filter: blur(12px);
+            border: 1px solid var(--card-border);
+            border-radius: 16px;
+            transition: background 0.8s ease, border 0.5s ease;
+        }
+
+        .header-title-area {
+            display: flex;
+            align-items: center;
+            gap: 16px;
+        }
+
+        .logo-box {
+            width: 48px;
+            height: 48px;
+            background: linear-gradient(135deg, var(--primary), var(--pond-blue));
+            border-radius: 12px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            box-shadow: 0 0 20px var(--primary-glow);
+        }
+
+        .logo-box i {
+            font-size: 24px;
+            color: #ffffff;
+        }
+
+        .header-text h1 {
+            font-family: var(--font-display);
+            font-size: 22px;
+            font-weight: 700;
+            letter-spacing: 0.5px;
+            background: linear-gradient(to right, var(--text-primary), var(--primary));
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            transition: color 0.5s ease;
+        }
+
+        .header-text p {
+            font-size: 12px;
+            color: var(--text-secondary);
+            margin-top: 2px;
+            transition: color 0.5s ease;
+        }
+
+        /* System Info Status Widget Bar */
+        .status-widget-bar {
+            display: flex;
+            align-items: center;
+            gap: 20px;
+        }
+
+        .status-item {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            background: var(--widget-item-bg);
+            padding: 8px 16px;
+            border-radius: 10px;
+            border: 1px solid var(--widget-item-border);
+            font-size: 13px;
+            transition: background 0.5s ease, border 0.5s ease;
+        }
+
+        .status-dot {
+            width: 8px;
+            height: 8px;
+            border-radius: 50%;
+            background-color: var(--safe);
+            box-shadow: 0 0 8px var(--safe);
+            animation: pulse-dot 2s infinite;
+        }
+
+        @keyframes pulse-dot {
+            0% { transform: scale(0.95); box-shadow: 0 0 0 0 rgba(16, 185, 129, 0.7); }
+            70% { transform: scale(1); box-shadow: 0 0 0 8px rgba(16, 185, 129, 0); }
+            100% { transform: scale(0.95); box-shadow: 0 0 0 0 rgba(16, 185, 129, 0); }
+        }
+
+        /* Dashboard Main Layout */
+        .dashboard-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 20px;
+        }
+
+        @media (max-width: 1200px) {
+            .dashboard-grid {
+                grid-template-columns: 1fr;
+            }
+        }
+
+        /* Column Elements */
+        .col-left, .col-right {
+            display: flex;
+            flex-direction: column;
+            gap: 20px;
+        }
+
+        /* Glass Cards */
+        .glass-card {
+            background: var(--card-bg);
+            backdrop-filter: blur(16px) saturate(180%);
+            -webkit-backdrop-filter: blur(16px) saturate(180%);
+            border: 1px solid var(--card-border);
+            border-radius: 18px;
+            padding: 24px;
+            box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.3);
+            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1), background 0.8s ease, border 0.5s ease;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .glass-card::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            height: 1px;
+            background: linear-gradient(90deg, rgba(255, 255, 255, 0.08), rgba(255, 255, 255, 0));
+        }
+
+        .glass-card:hover {
+            border-color: var(--card-hover-border);
+            box-shadow: 0 12px 40px 0 rgba(20, 184, 166, 0.06);
+        }
+
+        .card-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 20px;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+            padding-bottom: 12px;
+        }
+
+        .card-title {
+            font-family: var(--font-display);
+            font-size: 18px;
+            font-weight: 600;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .card-title i {
+            color: var(--primary);
+        }
+
+        /* Energy Source Status Indicator Widget */
+        .energy-source-widget {
+            display: flex;
+            align-items: center;
+            gap: 16px;
+            background: var(--widget-item-bg);
+            border: 1px solid var(--widget-item-border);
+            border-radius: 14px;
+            padding: 14px 20px;
+            margin-bottom: 5px;
+            transition: background 0.5s ease, border 0.5s ease;
+        }
+
+        .battery-radial {
+            position: relative;
+            width: 50px;
+            height: 50px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .battery-ring-svg {
+            transform: rotate(-90deg);
+            width: 50px;
+            height: 50px;
+        }
+
+        .battery-ring-bg {
+            fill: none;
+            stroke: rgba(255, 255, 255, 0.06);
+            stroke-width: 4;
+        }
+
+        .battery-ring-progress {
+            fill: none;
+            stroke: var(--safe);
+            stroke-width: 4;
+            stroke-linecap: round;
+            transition: stroke-dashoffset 0.5s ease;
+        }
+
+        .battery-val-text {
+            position: absolute;
+            font-size: 11px;
+            font-weight: 700;
+            font-family: var(--font-display);
+        }
+
+        .source-details {
+            flex-grow: 1;
+        }
+
+        .source-badge {
+            display: inline-block;
+            font-size: 10px;
+            font-weight: 700;
+            padding: 2px 8px;
+            border-radius: 20px;
+            background: rgba(16, 185, 129, 0.15);
+            color: var(--safe);
+            border: 1px solid rgba(16, 185, 129, 0.2);
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            margin-bottom: 4px;
+        }
+
+        .source-name {
+            font-family: var(--font-display);
+            font-size: 15px;
+            font-weight: 600;
+            color: var(--text-primary);
+            transition: color 0.5s ease;
+        }
+
+        .source-sub {
+            font-size: 11px;
+            color: var(--text-secondary);
+            margin-top: 2px;
+            transition: color 0.5s ease;
+        }
+
+        /* SVG Farm Visualizer */
+        .visualizer-container {
+            width: 100%;
+            aspect-ratio: 2 / 1;
+            height: auto;
+            background: var(--water-visualizer-bg);
+            border-radius: 12px;
+            border: 1px solid var(--card-border);
+            overflow: hidden;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            position: relative;
+            transition: background 0.8s ease, border 0.5s ease;
+        }
+
+        #farm-svg {
+            width: 100%;
+            height: 100%;
+        }
+
+        /* Dynamic SVG Styling & Animations */
+        .wind-turbine {
+            transform-origin: 300px 90px;
+            animation: spin 5s linear infinite;
+        }
+
+        @keyframes spin {
+            100% { transform: rotate(360deg); }
+        }
+
+        .sun-ray {
+            animation: pulse-ray 3s infinite ease-in-out;
+            transform-origin: center;
+        }
+
+        @keyframes pulse-ray {
+            0%, 100% { opacity: 0.3; }
+            50% { opacity: 0.7; }
+        }
+
+        .water-sprinkler-drip {
+            stroke-dasharray: 4, 4;
+            animation: drip 1.5s linear infinite;
+            display: none; /* Controlled by JS classes */
+        }
+
+        .water-sprinkler-drip.active {
+            display: block;
+        }
+
+        @keyframes drip {
+            to { stroke-dashoffset: -20; }
+        }
+
+        .fish-swim-1 {
+            animation: swim-left 14s linear infinite;
+        }
+        .fish-swim-2 {
+            animation: swim-right 12s linear infinite;
+        }
+        .fish-swim-3 {
+            animation: swim-left 18s linear infinite;
+        }
+
+        @keyframes swim-left {
+            0% { transform: translate(850px, 0) scaleX(-1); }
+            49% { transform: translate(50px, 0) scaleX(-1); }
+            50% { transform: translate(50px, 0) scaleX(1); }
+            99% { transform: translate(850px, 0) scaleX(1); }
+            100% { transform: translate(850px, 0) scaleX(-1); }
+        }
+
+        @keyframes swim-right {
+            0% { transform: translate(-50px, 0) scaleX(1); }
+            49% { transform: translate(750px, 0) scaleX(1); }
+            50% { transform: translate(750px, 0) scaleX(-1); }
+            99% { transform: translate(-50px, 0) scaleX(-1); }
+            100% { transform: translate(-50px, 0) scaleX(1); }
+        }
+
+        .food-pellet {
+            opacity: 0;
+            transform: translateY(0);
+        }
+
+        .food-pellet.active {
+            animation: fall 1.2s cubic-bezier(0.25, 0.46, 0.45, 0.94) infinite;
+        }
+
+        @keyframes fall {
+            0% { opacity: 0; transform: translateY(0); }
+            15% { opacity: 1; }
+            80% { opacity: 1; transform: translateY(80px); }
+            100% { opacity: 0; transform: translateY(90px); }
+        }
+
+        .bubble-rise {
+            animation: bubble-up 4s ease-in infinite;
+        }
+
+        @keyframes bubble-up {
+            0% { transform: translateY(0) translateX(0); opacity: 0; }
+            10% { opacity: 0.6; }
+            90% { opacity: 0.6; }
+            100% { transform: translateY(-70px) translateX(var(--drift, 5px)); opacity: 0; }
+        }
+
+        /* Sector Header Dividers */
+        .sector-header {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            font-family: var(--font-display);
+            font-size: 15px;
+            font-weight: 700;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            margin: 10px 0 14px 0;
+        }
+
+        .sector-header.solar { color: var(--solar-gold); }
+        .sector-header.pond { color: var(--pond-blue); }
+        .sector-header.crop { color: var(--crop-green); }
+
+        .sector-header::after {
+            content: '';
+            flex-grow: 1;
+            height: 1px;
+            background: linear-gradient(90deg, currentColor, rgba(255,255,255,0.02));
+            opacity: 0.25;
+        }
+
+        /* Sensor Dashboard Grid */
+        .sensor-grid {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 16px;
+        }
+
+        @media (max-width: 600px) {
+            .sensor-grid {
+                grid-template-columns: 1fr;
+            }
+        }
+
+        /* Sensor Card */
+        .sensor-card {
+            background: var(--sensor-card-bg);
+            border: 1px solid var(--sensor-card-border);
+            border-radius: 14px;
+            padding: 16px 20px;
+            display: flex;
+            flex-direction: column;
+            justify-content: space-between;
+            min-height: 115px;
+            position: relative;
+            transition: all 0.3s ease, background 0.5s ease, border 0.5s ease;
+        }
+
+        .sensor-card:hover {
+            background: var(--sensor-card-hover-bg);
+            border-color: var(--sensor-card-hover-border);
+        }
+
+        .sensor-top {
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-start;
+        }
+
+        .sensor-label {
+            font-size: 12px;
+            color: var(--text-secondary);
+            font-weight: 500;
+            transition: color 0.5s ease;
+        }
+
+        .sensor-icon-box {
+            width: 32px;
+            height: 32px;
+            border-radius: 8px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 14px;
+        }
+
+        .solar .sensor-icon-box { background: rgba(245, 158, 11, 0.1); color: var(--solar-gold); }
+        .pond .sensor-icon-box { background: rgba(14, 165, 233, 0.1); color: var(--pond-blue); }
+        .crop .sensor-icon-box { background: rgba(16, 185, 129, 0.1); color: var(--crop-green); }
+
+        .sensor-bottom {
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-end;
+            margin-top: 16px;
+        }
+
+        .sensor-value-area {
+            display: flex;
+            align-items: baseline;
+            gap: 4px;
+        }
+
+        .sensor-value {
+            font-family: var(--font-display);
+            font-size: 24px;
+            font-weight: 700;
+            color: var(--text-primary);
+            transition: color 0.5s ease;
+        }
+
+        .sensor-unit {
+            font-size: 12px;
+            color: var(--text-secondary);
+            font-weight: 500;
+            transition: color 0.5s ease;
+        }
+
+        /* Status Badge Indicator */
+        .status-badge {
+            font-size: 10px;
+            font-weight: 700;
+            padding: 3px 8px;
+            border-radius: 6px;
+            display: flex;
+            align-items: center;
+            gap: 4px;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            transition: all 0.3s ease;
+        }
+
+        .status-badge.safe {
+            background: rgba(16, 185, 129, 0.15);
+            color: var(--safe);
+            border: 1px solid rgba(16, 185, 129, 0.15);
+        }
+
+        .status-badge.warning {
+            background: rgba(245, 158, 11, 0.15);
+            color: var(--warning);
+            border: 1px solid rgba(245, 158, 11, 0.15);
+        }
+
+        .status-badge.danger {
+            background: rgba(239, 68, 68, 0.15);
+            color: var(--danger);
+            border: 1px solid rgba(239, 68, 68, 0.15);
+            animation: pulse-red-card 1.5s infinite alternate;
+        }
+
+        .status-badge.standby {
+            background: rgba(148, 163, 184, 0.1);
+            color: var(--text-secondary);
+            border: 1px solid rgba(148, 163, 184, 0.1);
+        }
+
+        @keyframes pulse-red-card {
+            0% { box-shadow: 0 0 2px rgba(239, 68, 68, 0.1); }
+            100% { box-shadow: 0 0 10px rgba(239, 68, 68, 0.3); }
+        }
+
+        /* Actuator Status Glowing Box */
+        .actuator-glowing-status {
+            font-family: var(--font-display);
+            font-size: 13px;
+            font-weight: 700;
+            padding: 3px 10px;
+            border-radius: 20px;
+            transition: all 0.3s ease;
+        }
+
+        .actuator-glowing-status.active {
+            background: rgba(16, 185, 129, 0.2);
+            color: var(--safe);
+            border: 1px solid rgba(16, 185, 129, 0.3);
+            box-shadow: 0 0 15px rgba(16, 185, 129, 0.35);
+        }
+
+        .actuator-glowing-status.inactive {
+            background: var(--widget-item-bg);
+            color: var(--text-muted);
+            border: 1px solid var(--card-border);
+        }
+
+        /* IoT Controls Section Styling */
+        .controls-container {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 20px;
+        }
+
+        @media (max-width: 600px) {
+            .controls-container {
+                grid-template-columns: 1fr;
+            }
+        }
+
+        .control-block {
+            background: var(--sensor-card-bg);
+            border: 1px solid var(--sensor-card-border);
+            border-radius: 16px;
+            padding: 20px;
+            display: flex;
+            flex-direction: column;
+            gap: 16px;
+            position: relative;
+            transition: background 0.5s ease, border 0.5s ease;
+        }
+
+        .control-block-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .control-title-box {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .control-icon-circle {
+            width: 36px;
+            height: 36px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 15px;
+        }
+
+        .control-block.watering .control-icon-circle { background: rgba(16, 185, 129, 0.1); color: var(--crop-green); }
+        .control-block.feeder .control-icon-circle { background: rgba(14, 165, 233, 0.1); color: var(--pond-blue); }
+
+        .control-title-box h3 {
+            font-family: var(--font-display);
+            font-size: 15px;
+            font-weight: 600;
+        }
+
+        /* iOS-style Toggle Switch */
+        .mode-toggle-area {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .mode-label {
+            font-size: 11px;
+            font-weight: 700;
+            letter-spacing: 0.5px;
+            text-transform: uppercase;
+        }
+
+        .mode-label.manual-label { color: var(--warning); }
+        .mode-label.auto-label { color: var(--primary); }
+
+        .switch {
+            position: relative;
+            display: inline-block;
+            width: 44px;
+            height: 24px;
+        }
+
+        .switch input {
+            opacity: 0;
+            width: 0;
+            height: 0;
+        }
+
+        .slider {
+            position: absolute;
+            cursor: pointer;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background-color: rgba(148, 163, 184, 0.15);
+            transition: .4s cubic-bezier(0.4, 0, 0.2, 1);
+            border-radius: 34px;
+            border: 1px solid var(--card-border);
+        }
+
+        .slider:before {
+            position: absolute;
+            content: "";
+            height: 16px;
+            width: 16px;
+            left: 3px;
+            bottom: 3px;
+            background-color: var(--text-secondary);
+            transition: .4s cubic-bezier(0.4, 0, 0.2, 1);
+            border-radius: 50%;
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.3);
+        }
+
+        input:checked + .slider {
+            background-color: var(--primary);
+        }
+
+        input:checked + .slider:before {
+            transform: translateX(20px);
+            background-color: #ffffff;
+            box-shadow: 0 0 10px var(--primary-glow);
+        }
+
+        /* Slider and Inputs for Settings */
+        .control-settings {
+            background: var(--widget-item-bg);
+            border: 1px solid var(--widget-item-border);
+            border-radius: 10px;
+            padding: 14px;
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+            font-size: 13px;
+            transition: background 0.5s ease, border 0.5s ease;
+        }
+
+        .input-group {
+            display: flex;
+            flex-direction: column;
+            gap: 6px;
+        }
+
+        .input-label {
+            display: flex;
+            justify-content: space-between;
+            font-size: 11px;
+            color: var(--text-secondary);
+            font-weight: 500;
+            transition: color 0.5s ease;
+        }
+
+        .input-val-display {
+            font-weight: 700;
+            color: var(--primary);
+        }
+
+        /* Styling Range Slider */
+        .range-slider {
+            -webkit-appearance: none;
+            width: 100%;
+            height: 6px;
+            border-radius: 3px;
+            background: rgba(148, 163, 184, 0.2);
+            outline: none;
+            transition: background 0.3s;
+        }
+
+        .range-slider::-webkit-slider-thumb {
+            -webkit-appearance: none;
+            appearance: none;
+            width: 16px;
+            height: 16px;
+            border-radius: 50%;
+            background: var(--primary);
+            cursor: pointer;
+            box-shadow: 0 0 10px var(--primary-glow);
+            transition: transform 0.1s ease;
+        }
+
+        .range-slider::-webkit-slider-thumb:hover {
+            transform: scale(1.2);
+        }
+
+        .range-slider:disabled {
+            opacity: 0.4;
+            cursor: not-allowed;
+        }
+
+        .range-slider:disabled::-webkit-slider-thumb {
+            background: var(--text-muted);
+            box-shadow: none;
+            cursor: not-allowed;
+        }
+
+        /* Feeder Schedule Grid */
+        .schedule-grid {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 8px;
+        }
+
+        .schedule-box {
+            display: flex;
+            flex-direction: column;
+            gap: 4px;
+        }
+
+        .schedule-input {
+            width: 100%;
+            background: var(--input-bg);
+            border: 1px solid var(--input-border);
+            border-radius: 6px;
+            color: var(--text-primary);
+            font-family: var(--font-main);
+            font-size: 12px;
+            padding: 6px 8px;
+            text-align: center;
+            outline: none;
+            transition: all 0.3s ease, background 0.5s ease, border 0.5s ease;
+        }
+
+        .schedule-input:focus {
+            border-color: var(--primary);
+            box-shadow: 0 0 8px rgba(20, 184, 166, 0.2);
+        }
+
+        .schedule-input:disabled {
+            opacity: 0.4;
+            cursor: not-allowed;
+        }
+
+        /* Action Buttons */
+        .action-btn {
+            background: linear-gradient(135deg, var(--primary), #0d9488);
+            border: none;
+            border-radius: 12px;
+            color: #ffffff;
+            cursor: pointer;
+            font-family: var(--font-display);
+            font-size: 14px;
+            font-weight: 700;
+            padding: 12px 20px;
+            text-align: center;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+            box-shadow: 0 4px 15px rgba(20, 184, 166, 0.25);
+            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+            width: 100%;
+        }
+
+        .action-btn:hover:not(:disabled) {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 20px rgba(20, 184, 166, 0.4);
+            background: linear-gradient(135deg, #2dd4bf, var(--primary));
+        }
+
+        .action-btn:active:not(:disabled) {
+            transform: translateY(0);
+        }
+
+        .action-btn:disabled {
+            background: rgba(148, 163, 184, 0.1) !important;
+            border: 1px solid var(--card-border);
+            color: var(--text-muted);
+            cursor: not-allowed;
+            box-shadow: none;
+        }
+
+        /* Specific styles for buttons on active/firing states */
+        .action-btn.active-firing {
+            background: linear-gradient(135deg, var(--danger), #dc2626) !important;
+            box-shadow: 0 4px 20px rgba(239, 68, 68, 0.4) !important;
+            animation: pulse-red-btn 1s infinite alternate;
+        }
+
+        @keyframes pulse-red-btn {
+            100% { opacity: 0.85; }
+        }
+
+        /* Chart & Logs Dual Pane Grid */
+        .dual-pane {
+            display: grid;
+            grid-template-columns: 1.2fr 0.8fr;
+            gap: 20px;
+        }
+
+        @media (max-width: 900px) {
+            .dual-pane {
+                grid-template-columns: 1fr;
+            }
+        }
+
+        /* Chart Header Tabs */
+        .chart-tabs {
+            display: flex;
+            gap: 8px;
+            background: var(--widget-item-bg);
+            border: 1px solid var(--widget-item-border);
+            border-radius: 10px;
+            padding: 4px;
+            transition: background 0.5s ease, border 0.5s ease;
+        }
+
+        .chart-tab-btn {
+            background: transparent;
+            border: none;
+            border-radius: 6px;
+            color: var(--text-secondary);
+            cursor: pointer;
+            font-family: var(--font-display);
+            font-size: 11px;
+            font-weight: 700;
+            padding: 6px 14px;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            transition: all 0.3s ease, color 0.5s ease;
+        }
+
+        .chart-tab-btn.active {
+            background: var(--card-bg);
+            color: var(--text-primary);
+            border: 1px solid var(--card-border);
+        }
+
+        .chart-tab-btn.active.solar-tab { color: var(--solar-gold); }
+        .chart-tab-btn.active.crop-tab { color: var(--crop-green); }
+        .chart-tab-btn.active.pond-tab { color: var(--pond-blue); }
+
+        .chart-wrapper {
+            width: 100%;
+            height: 250px;
+            position: relative;
+            margin-top: 16px;
+        }
+
+        /* Activity Logs Widget */
+        .logs-feed-container {
+            display: flex;
+            flex-direction: column;
+            height: 310px;
+        }
+
+        .logs-list {
+            flex-grow: 1;
+            overflow-y: auto;
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+            padding-right: 6px;
+            margin-top: 10px;
+        }
+
+        /* Webkit Custom Scrollbar */
+        .logs-list::-webkit-scrollbar {
+            width: 4px;
+        }
+
+        .logs-list::-webkit-scrollbar-track {
+            background: rgba(0, 0, 0, 0.02);
+        }
+
+        .logs-list::-webkit-scrollbar-thumb {
+            background: rgba(20, 184, 166, 0.2);
+            border-radius: 4px;
+        }
+
+        .logs-list::-webkit-scrollbar-thumb:hover {
+            background: var(--primary);
+        }
+
+        .log-entry {
+            background: var(--sensor-card-bg);
+            border-left: 3px solid var(--neutral);
+            padding: 10px 14px;
+            border-radius: 0 8px 8px 0;
+            font-size: 12px;
+            display: flex;
+            flex-direction: column;
+            gap: 4px;
+            animation: slide-in 0.3s ease-out;
+            transition: background 0.5s ease;
+        }
+
+        .log-entry.log-auto {
+            border-left-color: var(--primary);
+            background: rgba(20, 184, 166, 0.03);
+        }
+
+        .log-entry.log-manual {
+            border-left-color: var(--warning);
+            background: rgba(245, 158, 11, 0.03);
+        }
+
+        .log-entry.log-alert {
+            border-left-color: var(--danger);
+            background: rgba(239, 68, 68, 0.03);
+        }
+
+        @keyframes slide-in {
+            from { transform: translateX(-10px); opacity: 0; }
+            to { transform: translateX(0); opacity: 1; }
+        }
+
+        .log-header {
+            display: flex;
+            justify-content: space-between;
+            color: var(--text-muted);
+            font-size: 10px;
+            font-weight: 700;
+        }
+
+        .log-time {
+            font-family: var(--font-display);
+        }
+
+        .log-tag {
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+
+        .log-entry.log-auto .log-tag { color: var(--primary); }
+        .log-entry.log-manual .log-tag { color: var(--warning); }
+        .log-entry.log-alert .log-tag { color: var(--danger); }
+
+        .log-body {
+            color: var(--text-primary);
+            line-height: 1.4;
+            transition: color 0.5s ease;
+        }
+
+        .log-body strong {
+            font-weight: 600;
+        }
+
+        /* ==========================================
+           Mobile & Tablet Responsive Overrides
+           ========================================== */
+        @media (max-width: 900px) {
+            .controls-container {
+                grid-template-columns: 1fr;
+            }
+        }
+
+        @media (max-width: 768px) {
+            header {
+                flex-direction: column;
+                align-items: flex-start;
+                gap: 14px;
+                padding: 16px;
+            }
+            
+            .status-widget-bar {
+                width: 100%;
+                justify-content: space-between;
+                flex-wrap: wrap;
+                gap: 10px;
+            }
+            
+            .status-item {
+                flex-grow: 1;
+                justify-content: center;
+            }
+            
+            .header-text h1 {
+                font-size: 18px;
+            }
+            
+            .header-text p {
+                font-size: 11px;
+            }
+        }
+
+        @media (max-width: 600px) {
+            body {
+                padding: 10px;
+            }
+            
+            .glass-card {
+                padding: 18px;
+                border-radius: 14px;
+            }
+            
+            .card-title {
+                font-size: 16px;
+            }
+            
+            .sensor-card {
+                padding: 14px 16px;
+                min-height: 95px;
+                border-radius: 12px;
+            }
+            
+            .sensor-value {
+                font-size: 20px;
+            }
+            
+            .visualizer-container {
+                aspect-ratio: 2 / 1;
+                height: auto;
+            }
+            
+            .chart-wrapper {
+                height: 200px;
+            }
+            
+            .logs-feed-container {
+                height: 260px;
+            }
+            
+            .energy-source-widget {
+                padding: 12px 16px;
+            }
+            
+            .source-name {
+                font-size: 13px;
+            }
+            
+            .source-sub {
+                font-size: 10px;
+            }
+        }
+
+        @media (max-width: 400px) {
+            .schedule-grid {
+                grid-template-columns: 1fr;
+                gap: 8px;
+            }
+            
+            .schedule-input {
+                padding: 8px;
+                font-size: 13px;
+            }
+            
+            .status-widget-bar {
+                flex-direction: column;
+                align-items: stretch;
+            }
+        }
+    </style>
+</head>
+<body class="theme-light"> <!-- Simulation starts at 08:00 AM, which is Day/Light theme -->
+
+<div class="app-container">
+    <!-- Header Block -->
+    <header>
+        <div class="header-title-area">
+            <div class="logo-box">
+                <i class="fa-solid fa-solar-panel"></i>
+            </div>
+            <div class="header-text">
+                <h1>SOLAR FLOATING FARM</h1>
+                <p>IoT-Based Smart Farming & Aquaculture Integrated Platform</p>
+            </div>
+        </div>
+        <div class="status-widget-bar">
+            <!-- Simulated accelerated Clock -->
+            <div class="status-item" title="Waktu Simulasi IoT (Kecepatan: 1 Detik Nyata = 3 Menit Simulasi)">
+                <i class="fa-regular fa-clock" style="color: var(--primary);"></i>
+                <span id="sim-clock" style="font-family: var(--font-display); font-weight: 700;">08:00 AM</span>
+            </div>
+            <!-- Net Status Blinker -->
+            <div class="status-item">
+                <span class="status-dot"></span>
+                <span style="font-weight: 600; font-size: 12px; letter-spacing: 0.5px;">SYSTEM ONLINE</span>
+            </div>
+        </div>
+    </header>
+
+    <!-- Dashboard Content Layout Grid -->
+    <div class="dashboard-grid">
+        
+        <!-- Left Column: Visualizer & Controls -->
+        <div class="col-left">
+            
+            <!-- Dynamic SVG Graphic representation -->
+            <div class="glass-card">
+                <div class="card-header">
+                    <h2 class="card-title">
+                        <i class="fa-solid fa-seedling"></i> Visualisasi Sistem Apung
+                    </h2>
+                    <span id="day-stage" class="status-badge standby" style="font-size: 10px;">Siang Hari</span>
+                </div>
+                
+                <div class="visualizer-container">
+                    <svg id="farm-svg" viewBox="0 0 800 400" preserveAspectRatio="xMidYMid meet">
+                        <!-- Definitions & Gradients -->
+                        <defs>
+                            <!-- Day Sky Gradient -->
+                            <linearGradient id="sky-day" x1="0%" y1="0%" x2="0%" y2="100%">
+                                <stop offset="0%" stop-color="#38bdf8" />
+                                <stop offset="60%" stop-color="#bae6fd" />
+                                <stop offset="100%" stop-color="#e0f2fe" />
+                            </linearGradient>
+                            <!-- Night Sky Gradient -->
+                            <linearGradient id="sky-night-grad" x1="0%" y1="0%" x2="0%" y2="100%">
+                                <stop offset="0%" stop-color="#090d16" />
+                                <stop offset="60%" stop-color="#0f172a" />
+                                <stop offset="100%" stop-color="#1e293b" />
+                            </linearGradient>
+                            <!-- Water Gradient -->
+                            <linearGradient id="water-grad" x1="0%" y1="0%" x2="0%" y2="100%">
+                                <stop offset="0%" stop-color="#0e7490" stop-opacity="0.8" />
+                                <stop offset="60%" stop-color="#0891b2" stop-opacity="0.9" />
+                                <stop offset="100%" stop-color="#0f766e" stop-opacity="0.95" />
+                            </linearGradient>
+                            <!-- Sun Glow Filter -->
+                            <filter id="glow-sun" x="-50%" y="-50%" width="200%" height="200%">
+                                <feGaussianBlur stdDeviation="8" result="blur" />
+                                <feComposite in="SourceGraphic" in2="blur" operator="over" />
+                            </filter>
+                            <!-- Solar Panel Active Glow -->
+                            <filter id="solar-glow" x="-20%" y="-20%" width="140%" height="140%">
+                                <feGaussianBlur stdDeviation="3" result="blur" />
+                                <feComponentTransfer in="blur" result="glow">
+                                    <feFuncA type="linear" slope="0.5"/>
+                                </feComponentTransfer>
+                                <feMerge>
+                                    <feMergeNode in="glow"/>
+                                    <feMergeNode in="SourceGraphic"/>
+                                </feMerge>
+                            </filter>
+                        </defs>
+
+                        <!-- Dynamic Sky Rectangles -->
+                        <rect id="sky-day-bg" width="800" height="200" fill="url(#sky-day)" transition="opacity 1s" />
+                        <rect id="sky-night-bg" width="800" height="200" fill="url(#sky-night-grad)" opacity="0" transition="opacity 1s" />
+
+                        <!-- Dynamic Sun and Moon -->
+                        <circle id="svg-sun" cx="100" cy="120" r="24" fill="#fef08a" filter="url(#glow-sun)" />
+                        <path id="svg-moon" d="M 100 120 A 20 20 0 1 0 125 105 A 20 20 0 1 1 100 120 Z" fill="#e2e8f0" opacity="0" filter="url(#glow-sun)" />
+
+                        <!-- Cloud shapes -->
+                        <path d="M 620 60 Q 640 40 660 60 Q 685 45 700 70 Q 720 70 710 90 L 610 90 Z" fill="#ffffff" opacity="0.45" />
+                        <path d="M 80 50 Q 100 30 120 50 Q 145 35 160 60 Q 180 60 170 80 L 70 80 Z" fill="#ffffff" opacity="0.3" />
+
+                        <!-- Water Body (Lower Half) -->
+                        <rect x="0" y="200" width="800" height="200" fill="url(#water-grad)" />
+                        
+                        <!-- Water surface wave line -->
+                        <path d="M 0 200 Q 100 196 200 200 T 400 200 T 600 200 T 800 200 L 800 205 L 0 205 Z" fill="#0891b2" opacity="0.5" />
+
+                        <!-- Floating Platform structures -->
+                        <!-- Buoyancy Cylinders -->
+                        <rect x="180" y="198" width="80" height="15" rx="6" fill="#64748b" stroke="#334155" stroke-width="1.5" />
+                        <rect x="330" y="198" width="80" height="15" rx="6" fill="#64748b" stroke="#334155" stroke-width="1.5" />
+                        <rect x="540" y="198" width="80" height="15" rx="6" fill="#64748b" stroke="#334155" stroke-width="1.5" />
+
+                        <!-- Platform Main Frame Deck -->
+                        <rect x="140" y="192" width="520" height="8" rx="2" fill="#334155" />
+                        <!-- Safety railings -->
+                        <path d="M 150 192 L 150 175 L 650 175 L 650 192 M 250 192 L 250 175 M 350 192 L 350 175 M 450 192 L 450 175 M 550 192 L 550 175" stroke="#475569" stroke-width="1.5" fill="none" />
+
+                        <!-- Solar Panels Frame & Panels (Left Side) -->
+                        <line x1="180" y1="192" x2="195" y2="155" stroke="#1e293b" stroke-width="4" />
+                        <line x1="280" y1="192" x2="295" y2="155" stroke="#1e293b" stroke-width="4" />
+                        <!-- Solar Panel sloped surface -->
+                        <polygon points="150,165 290,140 310,165 170,190" fill="#1e3a8a" stroke="#3b82f6" stroke-width="2" />
+                        <!-- Panel Grid lines -->
+                        <line x1="220" y1="152" x2="240" y2="177" stroke="#3b82f6" stroke-width="1" />
+                        <line x1="185" y1="158" x2="205" y2="183" stroke="#3b82f6" stroke-width="1" />
+                        <line x1="255" y1="146" x2="275" y2="171" stroke="#3b82f6" stroke-width="1" />
+                        <line x1="160" y1="177" x2="300" y2="152" stroke="#3b82f6" stroke-width="1" />
+                        <!-- Solar Panel dynamic amber/golden glow element -->
+                        <polygon id="svg-solar-glow" points="150,165 290,140 310,165 170,190" fill="#f59e0b" opacity="0" filter="url(#solar-glow)" style="mix-blend-mode: screen;" />
+
+                        <!-- Feeder Device (Aquaculture edge) -->
+                        <rect x="330" y="172" width="22" height="20" rx="3" fill="#1e293b" stroke="#475569" stroke-width="1" />
+                        <path d="M 341 192 L 341 202 L 336 205" fill="none" stroke="#475569" stroke-width="2" />
+                        <!-- Falling fish food pellets -->
+                        <circle class="food-pellet p1" cx="336" cy="207" r="1.5" fill="#ca8a04" />
+                        <circle class="food-pellet p2" cx="337" cy="215" r="1.5" fill="#ca8a04" />
+                        <circle class="food-pellet p3" cx="335" cy="225" r="1.5" fill="#ca8a04" />
+                        <circle class="food-pellet p4" cx="338" cy="235" r="1.5" fill="#ca8a04" />
+
+                        <!-- Hydroponic Setup (Right Side) -->
+                        <!-- White NFT gully channels -->
+                        <rect x="420" y="180" width="220" height="12" rx="3" fill="#e2e8f0" stroke="#94a3b8" stroke-width="1" />
+                        <!-- Crop plants (group) -->
+                        <g id="crops-group">
+                            <!-- Crop 1 -->
+                            <g transform="translate(440, 163)">
+                                <path d="M 10 17 Q 0 8 3 0 Q 10 8 10 17 Q 10 8 17 0 Q 20 8 10 17" fill="#10b981" />
+                                <rect x="8" y="17" width="4" height="4" fill="#78350f" />
+                            </g>
+                            <!-- Crop 2 -->
+                            <g transform="translate(485, 163)">
+                                <path d="M 10 17 Q 0 8 3 0 Q 10 8 10 17 Q 10 8 17 0 Q 20 8 10 17" fill="#10b981" />
+                                <rect x="8" y="17" width="4" height="4" fill="#78350f" />
+                            </g>
+                            <!-- Crop 3 -->
+                            <g transform="translate(530, 163)">
+                                <path d="M 10 17 Q 0 8 3 0 Q 10 8 10 17 Q 10 8 17 0 Q 20 8 10 17" fill="#10b981" />
+                                <rect x="8" y="17" width="4" height="4" fill="#78350f" />
+                            </g>
+                            <!-- Crop 4 -->
+                            <g transform="translate(575, 163)">
+                                <path d="M 10 17 Q 0 8 3 0 Q 10 8 10 17 Q 10 8 17 0 Q 20 8 10 17" fill="#10b981" />
+                                <rect x="8" y="17" width="4" height="4" fill="#78350f" />
+                            </g>
+                            <!-- Crop 5 -->
+                            <g transform="translate(620, 163)">
+                                <path d="M 10 17 Q 0 8 3 0 Q 10 8 10 17 Q 10 8 17 0 Q 20 8 10 17" fill="#10b981" />
+                                <rect x="8" y="17" width="4" height="4" fill="#78350f" />
+                            </g>
+                        </g>
+
+                        <!-- Sprinkler Pipe and droplets (Watering) -->
+                        <path d="M 420 145 L 640 145" stroke="#475569" stroke-width="2.5" />
+                        <line x1="420" y1="145" x2="420" y2="180" stroke="#475569" stroke-width="2" />
+                        <line x1="640" y1="145" x2="640" y2="180" stroke="#475569" stroke-width="2" />
+                        <!-- Drops from sprinkler nozzles -->
+                        <line id="drip-1" class="water-sprinkler-drip" x1="450" y1="145" x2="450" y2="180" stroke="#38bdf8" stroke-width="1.5" />
+                        <line id="drip-2" class="water-sprinkler-drip" x1="495" y1="145" x2="495" y2="180" stroke="#38bdf8" stroke-width="1.5" />
+                        <line id="drip-3" class="water-sprinkler-drip" x1="540" y1="145" x2="540" y2="180" stroke="#38bdf8" stroke-width="1.5" />
+                        <line id="drip-4" class="water-sprinkler-drip" x1="585" y1="145" x2="585" y2="180" stroke="#38bdf8" stroke-width="1.5" />
+                        <line id="drip-5" class="water-sprinkler-drip" x1="630" y1="145" x2="630" y2="180" stroke="#38bdf8" stroke-width="1.5" />
+
+                        <!-- Aquaculture Pond elements (Fish swimming under) -->
+                        <!-- Fish 1 -->
+                        <g class="fish-swim-1" transform="translate(0, 240)">
+                            <path d="M -15 0 C -5 -10 15 -5 20 0 C 15 5 -5 10 -15 0 Z" fill="#e11d48" />
+                            <polygon points="20,0 28,-7 26,0 28,7" fill="#be123c" />
+                            <circle cx="12" cy="-2" r="1" fill="#ffffff" />
+                        </g>
+                        <!-- Fish 2 -->
+                        <g class="fish-swim-2" transform="translate(0, 310)">
+                            <path d="M -15 0 C -5 -8 15 -4 20 0 C 15 4 -5 8 -15 0 Z" fill="#f97316" />
+                            <polygon points="20,0 26,-5 25,0 26,5" fill="#ea580c" />
+                            <circle cx="12" cy="-2" r="1" fill="#ffffff" />
+                        </g>
+                        <!-- Fish 3 -->
+                        <g class="fish-swim-3" transform="translate(0, 350)">
+                            <path d="M -12 0 C -4 -6 12 -3 16 0 C 12 3 -4 6 -12 0 Z" fill="#e11d48" />
+                            <polygon points="16,0 22,-4 21,0 22,4" fill="#be123c" />
+                            <circle cx="10" cy="-1" r="0.8" fill="#ffffff" />
+                        </g>
+
+                        <!-- Bubbles for dissolved oxygen (DO) -->
+                        <g id="bubble-group">
+                            <circle class="bubble-rise b1" cx="200" cy="380" r="2.5" fill="#ffffff" opacity="0.4" style="--drift: 8px;" />
+                            <circle class="bubble-rise b2" cx="205" cy="360" r="1.5" fill="#ffffff" opacity="0.4" style="--drift: -4px; animation-delay: 1.5s;" />
+                            <circle class="bubble-rise b3" cx="500" cy="390" r="2" fill="#ffffff" opacity="0.4" style="--drift: 5px; animation-delay: 0.8s;" />
+                            <circle class="bubble-rise b4" cx="510" cy="370" r="3" fill="#ffffff" opacity="0.4" style="--drift: -8px; animation-delay: 2.2s;" />
+                            <circle class="bubble-rise b5" cx="600" cy="380" r="1.5" fill="#ffffff" opacity="0.4" style="--drift: 3px; animation-delay: 1.2s;" />
+                        </g>
+                    </svg>
+                </div>
+            </div>
+
+            <!-- IoT Automatic & Manual Actuator Controls -->
+            <div class="glass-card">
+                <div class="card-header">
+                    <h2 class="card-title">
+                        <i class="fa-solid fa-sliders"></i> Panel Kontrol Sistem IoT
+                    </h2>
+                    <span class="status-badge safe" style="font-size: 10px;">Ready</span>
+                </div>
+                
+                <div class="controls-container">
+                    
+                    <!-- Watering Control Block -->
+                    <div class="control-block watering">
+                        <div class="control-block-header">
+                            <div class="control-title-box">
+                                <div class="control-icon-circle">
+                                    <i class="fa-solid fa-faucet-drip"></i>
+                                </div>
+                                <div>
+                                    <h3>Penyiraman</h3>
+                                    <span style="font-size: 10px; color: var(--text-secondary);">Tanaman Hidroponik</span>
+                                </div>
+                            </div>
+                            <div class="mode-toggle-area">
+                                <span id="label-mode-water" class="mode-label auto-label">AUTO</span>
+                                <label class="switch">
+                                    <input type="checkbox" id="toggle-mode-water" checked onchange="toggleControlMode('water')">
+                                    <span class="slider"></span>
+                                </label>
+                            </div>
+                        </div>
+
+                        <!-- Config Options -->
+                        <div class="control-settings">
+                            <div class="input-group">
+                                <div class="input-label">
+                                    <span>Threshold Kelembaban:</span>
+                                    <span class="input-val-display" id="val-water-threshold">40%</span>
+                                </div>
+                                <input type="range" class="range-slider" id="slider-water-threshold" min="20" max="80" value="40" oninput="updateWaterThreshold(this.value)">
+                            </div>
+                            <div class="input-label" style="margin-top: 4px;">
+                                <span>Status Pompa:</span>
+                                <span class="actuator-glowing-status inactive" id="status-pump-box">OFF</span>
+                            </div>
+                        </div>
+
+                        <!-- Manual watering triggers -->
+                        <button class="action-btn" id="btn-water-trigger" disabled onclick="triggerManualWater()">
+                            <i class="fa-solid fa-droplet"></i> Siram Sekarang
+                        </button>
+                    </div>
+
+                    <!-- Feeder Control Block -->
+                    <div class="control-block feeder">
+                        <div class="control-block-header">
+                            <div class="control-title-box">
+                                <div class="control-icon-circle">
+                                    <i class="fa-solid fa-shrimp"></i>
+                                </div>
+                                <div>
+                                    <h3>Feeder Pakan</h3>
+                                    <span style="font-size: 10px; color: var(--text-secondary);">Kolam Ikan</span>
+                                </div>
+                            </div>
+                            <div class="mode-toggle-area">
+                                <span id="label-mode-feed" class="mode-label auto-label">AUTO</span>
+                                <label class="switch">
+                                    <input type="checkbox" id="toggle-mode-feed" checked onchange="toggleControlMode('feed')">
+                                    <span class="slider"></span>
+                                </label>
+                            </div>
+                        </div>
+
+                        <!-- Config Options -->
+                        <div class="control-settings">
+                            <div class="schedule-grid">
+                                <div class="schedule-box">
+                                    <span class="input-label" style="font-size: 9px;">Jam Makan</span>
+                                    <input type="text" class="schedule-input" id="sched-feed-time" value="12:00" placeholder="HH:MM">
+                                </div>
+                                <div class="schedule-box">
+                                    <span class="input-label" style="font-size: 9px;">Frekuensi</span>
+                                    <select class="schedule-input" id="sched-feed-freq">
+                                        <option value="1">1x Sehari</option>
+                                        <option value="2" selected>2x Sehari</option>
+                                        <option value="3">3x Sehari</option>
+                                    </select>
+                                </div>
+                                <div class="schedule-box">
+                                    <span class="input-label" style="font-size: 9px;">Durasi (detik)</span>
+                                    <input type="number" class="schedule-input" id="sched-feed-dur" min="1" max="15" value="5">
+                                </div>
+                            </div>
+                            <div class="input-label" style="margin-top: 4px;">
+                                <span>Status Feeder:</span>
+                                <span class="actuator-glowing-status inactive" id="status-feeder-box">OFF</span>
+                            </div>
+                        </div>
+
+                        <!-- Manual feeder triggers -->
+                        <button class="action-btn" id="btn-feed-trigger" disabled onclick="triggerManualFeed()">
+                            <i class="fa-solid fa-bowl-food"></i> Beri Pakan Sekarang
+                        </button>
+                    </div>
+
+                </div>
+            </div>
+
+        </div>
+
+        <!-- Right Column: Monitoring & Analytics -->
+        <div class="col-right">
+            
+
+            <!-- Monitoring Grid: 3 Sectors -->
+            <div class="glass-card">
+                <!-- Sector 1: Energi Terbarukan -->
+                <div class="sector-header solar">Sektor Energi (Panel Surya Apung)</div>
+                <div class="sensor-grid solar" style="margin-bottom: 20px;">
+                    <!-- V -->
+                    <div class="sensor-card">
+                        <div class="sensor-top">
+                            <span class="sensor-label">Tegangan Solar</span>
+                            <div class="sensor-icon-box"><i class="fa-solid fa-bolt"></i></div>
+                        </div>
+                        <div class="sensor-bottom">
+                            <div class="sensor-value-area">
+                                <span class="sensor-value" id="val-solar-v">32.4</span>
+                                <span class="sensor-unit">V</span>
+                            </div>
+                            <span class="status-badge safe" id="badge-solar-v">Aman</span>
+                        </div>
+                    </div>
+                    <!-- A -->
+                    <div class="sensor-card">
+                        <div class="sensor-top">
+                            <span class="sensor-label">Arus Solar</span>
+                            <div class="sensor-icon-box"><i class="fa-solid fa-wave-square"></i></div>
+                        </div>
+                        <div class="sensor-bottom">
+                            <div class="sensor-value-area">
+                                <span class="sensor-value" id="val-solar-a">6.8</span>
+                                <span class="sensor-unit">A</span>
+                            </div>
+                            <span class="status-badge safe" id="badge-solar-a">Aman</span>
+                        </div>
+                    </div>
+                    <!-- W -->
+                    <div class="sensor-card">
+                        <div class="sensor-top">
+                            <span class="sensor-label">Daya Solar</span>
+                            <div class="sensor-icon-box"><i class="fa-solid fa-plug"></i></div>
+                        </div>
+                        <div class="sensor-bottom">
+                            <div class="sensor-value-area">
+                                <span class="sensor-value" id="val-solar-w">220.3</span>
+                                <span class="sensor-unit">W</span>
+                            </div>
+                            <span class="status-badge safe" id="badge-solar-w">Aman</span>
+                        </div>
+                    </div>
+                    <!-- kWh -->
+                    <div class="sensor-card">
+                        <div class="sensor-top">
+                            <span class="sensor-label">Energi Harian</span>
+                            <div class="sensor-icon-box"><i class="fa-solid fa-chart-line"></i></div>
+                        </div>
+                        <div class="sensor-bottom">
+                            <div class="sensor-value-area">
+                                <span class="sensor-value" id="val-solar-kwh">2.84</span>
+                                <span class="sensor-unit">kWh</span>
+                            </div>
+                            <span class="status-badge standby">Akumulatif</span>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Sector 2: Akuakultur -->
+                <div class="sector-header pond">Sektor Akuakultur (Kolam Bawah Platform)</div>
+                <div class="sensor-grid pond" style="margin-bottom: 20px;">
+                    <!-- Temp -->
+                    <div class="sensor-card">
+                        <div class="sensor-top">
+                            <span class="sensor-label">Suhu Air</span>
+                            <div class="sensor-icon-box"><i class="fa-solid fa-temperature-three-quarters"></i></div>
+                        </div>
+                        <div class="sensor-bottom">
+                            <div class="sensor-value-area">
+                                <span class="sensor-value" id="val-pond-temp">27.6</span>
+                                <span class="sensor-unit">°C</span>
+                            </div>
+                            <span class="status-badge safe" id="badge-pond-temp">Aman</span>
+                        </div>
+                    </div>
+                    <!-- pH -->
+                    <div class="sensor-card">
+                        <div class="sensor-top">
+                            <span class="sensor-label">pH Air</span>
+                            <div class="sensor-icon-box"><i class="fa-solid fa-droplet-slash"></i></div>
+                        </div>
+                        <div class="sensor-bottom">
+                            <div class="sensor-value-area">
+                                <span class="sensor-value" id="val-pond-ph">7.35</span>
+                                <span class="sensor-unit">pH</span>
+                            </div>
+                            <span class="status-badge safe" id="badge-pond-ph">Aman</span>
+                        </div>
+                    </div>
+                    <!-- DO -->
+                    <div class="sensor-card">
+                        <div class="sensor-top">
+                            <span class="sensor-label">Oksigen Terlarut (DO)</span>
+                            <div class="sensor-icon-box"><i class="fa-solid fa-wind"></i></div>
+                        </div>
+                        <div class="sensor-bottom">
+                            <div class="sensor-value-area">
+                                <span class="sensor-value" id="val-pond-do">6.12</span>
+                                <span class="sensor-unit">mg/L</span>
+                            </div>
+                            <span class="status-badge safe" id="badge-pond-do">Aman</span>
+                        </div>
+                    </div>
+                    <!-- Level -->
+                    <div class="sensor-card">
+                        <div class="sensor-top">
+                            <span class="sensor-label">Ketinggian Air</span>
+                            <div class="sensor-icon-box"><i class="fa-solid fa-water"></i></div>
+                        </div>
+                        <div class="sensor-bottom">
+                            <div class="sensor-value-area">
+                                <span class="sensor-value" id="val-pond-level">92.4</span>
+                                <span class="sensor-unit">%</span>
+                            </div>
+                            <span class="status-badge safe" id="badge-pond-level">Aman</span>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Sector 3: Pangan -->
+                <div class="sector-header crop">Sektor Pangan (Hidroponik Atas Platform)</div>
+                <div class="sensor-grid crop">
+                    <!-- Moisture -->
+                    <div class="sensor-card">
+                        <div class="sensor-top">
+                            <span class="sensor-label">Kelembaban Tanah</span>
+                            <div class="sensor-icon-box"><i class="fa-solid fa-compass-drafting"></i></div>
+                        </div>
+                        <div class="sensor-bottom">
+                            <div class="sensor-value-area">
+                                <span class="sensor-value" id="val-crop-moist">58.2</span>
+                                <span class="sensor-unit">%</span>
+                            </div>
+                            <span class="status-badge safe" id="badge-crop-moist">Aman</span>
+                        </div>
+                    </div>
+                    <!-- Air Temp -->
+                    <div class="sensor-card">
+                        <div class="sensor-top">
+                            <span class="sensor-label">Suhu Udara</span>
+                            <div class="sensor-icon-box"><i class="fa-solid fa-cloud-sun"></i></div>
+                        </div>
+                        <div class="sensor-bottom">
+                            <div class="sensor-value-area">
+                                <span class="sensor-value" id="val-crop-temp">29.4</span>
+                                <span class="sensor-unit">°C</span>
+                            </div>
+                            <span class="status-badge safe" id="badge-crop-temp">Aman</span>
+                        </div>
+                    </div>
+                    <!-- Light -->
+                    <div class="sensor-card">
+                        <div class="sensor-top">
+                            <span class="sensor-label">Intensitas Cahaya</span>
+                            <div class="sensor-icon-box"><i class="fa-solid fa-sun"></i></div>
+                        </div>
+                        <div class="sensor-bottom">
+                            <div class="sensor-value-area">
+                                <span class="sensor-value" id="val-crop-light">42.5</span>
+                                <span class="sensor-unit">kLux</span>
+                            </div>
+                            <span class="status-badge standby" id="badge-crop-light">Normal</span>
+                        </div>
+                    </div>
+                    <!-- Pump -->
+                    <div class="sensor-card">
+                        <div class="sensor-top">
+                            <span class="sensor-label">Pompa Pengairan</span>
+                            <div class="sensor-icon-box"><i class="fa-solid fa-circle-nodes"></i></div>
+                        </div>
+                        <div class="sensor-bottom">
+                            <div class="sensor-value-area">
+                                <span class="sensor-value" id="val-crop-pump" style="font-size: 20px;">MATI</span>
+                            </div>
+                            <span class="status-badge standby" id="badge-crop-pump">OFF</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Charts & Activity Logs Dual Container -->
+            <div class="dual-pane">
+                
+                <!-- Chart Area -->
+                <div class="glass-card">
+                    <div class="card-header">
+                        <h2 class="card-title">
+                            <i class="fa-solid fa-chart-area"></i> Grafik Tren IoT
+                        </h2>
+                        <div class="chart-tabs">
+                            <button class="chart-tab-btn active solar-tab" onclick="switchChartTab('solar', this)">Solar</button>
+                            <button class="chart-tab-btn crop-tab" onclick="switchChartTab('crop', this)">Moist</button>
+                            <button class="chart-tab-btn pond-tab" onclick="switchChartTab('pond', this)">Suhu Air</button>
+                        </div>
+                    </div>
+                    
+                    <div class="chart-wrapper">
+                        <canvas id="realtime-chart"></canvas>
+                    </div>
+                </div>
+
+                <!-- Live Activity Feed -->
+                <div class="glass-card logs-feed-container">
+                    <div class="card-header">
+                        <h2 class="card-title">
+                            <i class="fa-solid fa-clock-rotate-left"></i> Log Aktivitas IoT
+                        </h2>
+                        <span class="status-badge standby" id="log-count" style="font-size: 10px;">0 baris</span>
+                    </div>
+                    <div class="logs-list" id="logs-list-feed">
+                        <!-- Dynamic log items inject here -->
+                    </div>
+                </div>
+
+            </div>
+
+        </div>
+
+    </div>
+</div>
+
+<script>
+    /* ==========================================
+       IoT System Simulator Engine & State Control
+       ========================================== */
+    
+    // Core Simulator State
+    const state = {
+        // Simulated Fast Clock: 1 real second = 3 simulated minutes
+        // We start at 08:00 AM on Day 1
+        clock: {
+            hour: 8,
+            minute: 0,
+            ampm: 'AM',
+            day: 1
+        },
+        
+        // Renewable Energy status
+        energy: {
+            sourceMode: 'Solar + Baterai', // 'Solar + Baterai' or 'Grid Power'
+            batteryPercentage: 75,
+            batteryStatus: 'Mengisi daya', // 'Mengisi daya', 'Mengosongkan daya', 'Penuh'
+            solarSurplus: 142, // W
+            load: 78, // W (system base consumption)
+            backupHours: 14.5,
+            dailyAccumulation: 2.84, // kWh
+            voltage: 32.4,
+            current: 6.8,
+            power: 220.3
+        },
+        
+        // Fish Pond parameters
+        pond: {
+            temp: 27.6,
+            ph: 7.35,
+            do: 6.12,
+            level: 92.4,
+            feederActive: false,
+            feederAutoMode: true,
+            scheduledTime: '12:00',
+            frequency: '2',
+            duration: 5
+        },
+        
+        // Crops (Hydroponics) parameters
+        crop: {
+            moisture: 58.2,
+            temp: 29.4,
+            light: 42.5, // kLux
+            pumpActive: false,
+            pumpAutoMode: true,
+            threshold: 40
+        },
+
+        // Charts & logs history container
+        history: {
+            timeLabels: [],
+            solarPower: [],
+            soilMoist: [],
+            waterTemp: []
+        }
+    };
+
+    // Constant parameters / thresholds
+    const limits = {
+        solar: {
+            v: { minSafe: 12.0, maxSafe: 48.0 },
+            a: { minSafe: 0.1, maxSafe: 10.0 }
+        },
+        pond: {
+            temp: { minSafe: 25.0, maxSafe: 32.0, minWarn: 22.0, maxWarn: 34.0 },
+            ph: { minSafe: 6.8, maxSafe: 8.2, minWarn: 6.0, maxWarn: 9.0 },
+            do: { minSafe: 5.0, minWarn: 4.0 }, // higher is better
+            level: { minSafe: 80, minWarn: 70 }
+        },
+        crop: {
+            moist: { minSafe: 45, maxSafe: 85, minWarn: 40, maxWarn: 90 },
+            temp: { minSafe: 24.0, maxSafe: 33.0, minWarn: 20.0, maxWarn: 36.0 }
+        }
+    };
+
+    // Logging Utility
+    function addLogEntry(type, body) {
+        const listFeed = document.getElementById('logs-list-feed');
+        const countBadge = document.getElementById('log-count');
+        
+        const pad = (n) => n < 10 ? '0' + n : n;
+        const timeStr = `${pad(state.clock.hour)}:${pad(state.clock.minute)} ${state.clock.ampm}`;
+        
+        let typeClass = 'log-auto';
+        let tag = 'System';
+        
+        if (type === 'manual') {
+            typeClass = 'log-manual';
+            tag = 'Manual';
+        } else if (type === 'alert') {
+            typeClass = 'log-alert';
+            tag = 'Peringatan';
+        }
+        
+        const entry = document.createElement('div');
+        entry.className = `log-entry ${typeClass}`;
+        entry.innerHTML = `
+            <div class="log-header">
+                <span class="log-time">Hari ${state.clock.day} • ${timeStr}</span>
+                <span class="log-tag">${tag}</span>
+            </div>
+            <div class="log-body">${body}</div>
+        `;
+        
+        listFeed.insertBefore(entry, listFeed.firstChild);
+        
+        // Keep max 30 logs in UI list
+        if (listFeed.children.length > 30) {
+            listFeed.removeChild(listFeed.lastChild);
+        }
+        
+        countBadge.innerText = `${listFeed.children.length} log`;
+    }
+
+    // Chart.js Configuration
+    let mainChart;
+    let currentChartTab = 'solar'; // default tab
+
+    function initChart() {
+        const ctx = document.getElementById('realtime-chart').getContext('2d');
+        
+        // Pre-fill history data for standard visual look
+        const pad = (n) => n < 10 ? '0' + n : n;
+        let dummyHour = state.clock.hour - 1;
+        let dummyMin = state.clock.minute;
+        
+        for (let i = 0; i < 12; i++) {
+            dummyMin -= 5;
+            if (dummyMin < 0) {
+                dummyMin += 60;
+                dummyHour -= 1;
+            }
+            if (dummyHour < 1) dummyHour += 12;
+            
+            const dummyTimeStr = `${pad(dummyHour)}:${pad(dummyMin)}`;
+            state.history.timeLabels.unshift(dummyTimeStr);
+            state.history.solarPower.unshift(180 + Math.random()*20);
+            state.history.soilMoist.unshift(60 + Math.random()*4);
+            state.history.waterTemp.unshift(27.4 + Math.random()*0.4);
+        }
+
+        const dataSets = {
+            solar: {
+                label: 'Daya Solar (W)',
+                data: state.history.solarPower,
+                borderColor: '#f59e0b',
+                backgroundColor: 'rgba(245, 158, 11, 0.05)',
+                borderWidth: 2,
+                fill: true,
+                tension: 0.4
+            },
+            crop: {
+                label: 'Kelembaban Tanah (%)',
+                data: state.history.soilMoist,
+                borderColor: '#10b981',
+                backgroundColor: 'rgba(16, 185, 129, 0.05)',
+                borderWidth: 2,
+                fill: true,
+                tension: 0.4
+            },
+            pond: {
+                label: 'Suhu Air (°C)',
+                data: state.history.waterTemp,
+                borderColor: '#0ea5e9',
+                backgroundColor: 'rgba(14, 165, 233, 0.05)',
+                borderWidth: 2,
+                fill: true,
+                tension: 0.4
+            }
+        };
+
+        // Standard theme grid colors (will be updated dynamically on load matching theme)
+        const isNight = state.clock.hour >= 18 || state.clock.hour < 6;
+        const gridColor = isNight ? 'rgba(255, 255, 255, 0.03)' : 'rgba(0, 0, 0, 0.05)';
+
+        mainChart = new Chart(ctx, {
+            type: 'line',
+            data: {
+                labels: state.history.timeLabels,
+                datasets: [dataSets[currentChartTab]]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                plugins: {
+                    legend: { display: false }
+                },
+                scales: {
+                    x: {
+                        grid: { color: gridColor },
+                        ticks: { color: '#64748b', font: { size: 10 } }
+                    },
+                    y: {
+                        grid: { color: gridColor },
+                        ticks: { color: '#64748b', font: { size: 10 } }
+                    }
+                }
+            }
+        });
+    }
+
+    function updateChartData(newLabel, solarVal, moistVal, waterVal) {
+        state.history.timeLabels.push(newLabel);
+        state.history.solarPower.push(solarVal);
+        state.history.soilMoist.push(moistVal);
+        state.history.waterTemp.push(waterVal);
+
+        // Limit size to last 15 elements
+        if (state.history.timeLabels.length > 15) {
+            state.history.timeLabels.shift();
+            state.history.solarPower.shift();
+            state.history.soilMoist.shift();
+            state.history.waterTemp.shift();
+        }
+
+        // Re-inject datasets depending on selected tab
+        let dataToSet;
+        if (currentChartTab === 'solar') {
+            dataToSet = state.history.solarPower;
+        } else if (currentChartTab === 'crop') {
+            dataToSet = state.history.soilMoist;
+        } else {
+            dataToSet = state.history.waterTemp;
+        }
+
+        mainChart.data.labels = state.history.timeLabels;
+        mainChart.data.datasets[0].data = dataToSet;
+        mainChart.update('none'); // Update without full animations for smooth performance
+    }
+
+    function switchChartTab(tab, element) {
+        currentChartTab = tab;
+        
+        // Remove active class from all tab buttons
+        document.querySelectorAll('.chart-tab-btn').forEach(btn => {
+            btn.classList.remove('active');
+        });
+        element.classList.add('active');
+
+        // Color and details update
+        let config = {};
+        if (tab === 'solar') {
+            config = {
+                label: 'Daya Solar (W)',
+                data: state.history.solarPower,
+                color: '#f59e0b',
+                bgColor: 'rgba(245, 158, 11, 0.05)'
+            };
+        } else if (tab === 'crop') {
+            config = {
+                label: 'Kelembaban Tanah (%)',
+                data: state.history.soilMoist,
+                color: '#10b981',
+                bgColor: 'rgba(16, 185, 129, 0.05)'
+            };
+        } else {
+            config = {
+                label: 'Suhu Air (°C)',
+                data: state.history.waterTemp,
+                color: '#0ea5e9',
+                bgColor: 'rgba(14, 165, 233, 0.05)'
+            };
+        }
+
+        mainChart.data.datasets[0].label = config.label;
+        mainChart.data.datasets[0].data = config.data;
+        mainChart.data.datasets[0].borderColor = config.color;
+        mainChart.data.datasets[0].backgroundColor = config.bgColor;
+        mainChart.update();
+    }
+
+    // Toggle AUTO/MANUAL modes
+    function toggleControlMode(type) {
+        if (type === 'water') {
+            const checkbox = document.getElementById('toggle-mode-water');
+            const slider = document.getElementById('slider-water-threshold');
+            const button = document.getElementById('btn-water-trigger');
+            const label = document.getElementById('label-mode-water');
+            
+            state.crop.pumpAutoMode = checkbox.checked;
+            
+            if (state.crop.pumpAutoMode) {
+                slider.disabled = false;
+                button.disabled = true;
+                label.innerText = 'AUTO';
+                label.className = 'mode-label auto-label';
+                addLogEntry('auto', 'Mode penyiraman tanaman diubah ke <strong>OTOMATIS</strong>.');
+            } else {
+                slider.disabled = true;
+                button.disabled = false;
+                label.innerText = 'MANUAL';
+                label.className = 'mode-label manual-label';
+                addLogEntry('manual', 'Mode penyiraman tanaman diubah ke <strong>MANUAL</strong>. Kontrol aktif.');
+            }
+        } else if (type === 'feed') {
+            const checkbox = document.getElementById('toggle-mode-feed');
+            const timeIn = document.getElementById('sched-feed-time');
+            const freqIn = document.getElementById('sched-feed-freq');
+            const durIn = document.getElementById('sched-feed-dur');
+            const button = document.getElementById('btn-feed-trigger');
+            const label = document.getElementById('label-mode-feed');
+            
+            state.pond.feederAutoMode = checkbox.checked;
+            
+            if (state.pond.feederAutoMode) {
+                timeIn.disabled = false;
+                freqIn.disabled = false;
+                durIn.disabled = false;
+                button.disabled = true;
+                label.innerText = 'AUTO';
+                label.className = 'mode-label auto-label';
+                addLogEntry('auto', 'Mode pakan ikan diubah ke <strong>OTOMATIS</strong>.');
+            } else {
+                timeIn.disabled = true;
+                freqIn.disabled = true;
+                durIn.disabled = true;
+                button.disabled = false;
+                label.innerText = 'MANUAL';
+                label.className = 'mode-label manual-label';
+                addLogEntry('manual', 'Mode pakan ikan diubah ke <strong>MANUAL</strong>. Kontrol aktif.');
+            }
+        }
+    }
+
+    // Threshold adjust helper
+    function updateWaterThreshold(val) {
+        state.crop.threshold = parseInt(val);
+        document.getElementById('val-water-threshold').innerText = val + '%';
+    }
+
+    /* Actuator trigger functions */
+    // Manual Water Control Toggle
+    function triggerManualWater() {
+        const button = document.getElementById('btn-water-trigger');
+        
+        if (!state.crop.pumpActive) {
+            // Turn pump ON
+            state.crop.pumpActive = true;
+            button.innerHTML = `<i class="fa-solid fa-xmark"></i> Matikan Penyiraman`;
+            button.classList.add('active-firing');
+            addLogEntry('manual', 'Penyiraman tanaman **dinyalakan manual** oleh pengguna.');
+        } else {
+            // Turn pump OFF
+            state.crop.pumpActive = false;
+            button.innerHTML = `<i class="fa-solid fa-droplet"></i> Siram Sekarang`;
+            button.classList.remove('active-firing');
+            addLogEntry('manual', 'Penyiraman tanaman **dimatikan manual** oleh pengguna.');
+        }
+    }
+
+    // Manual Feed Control Trigger
+    function triggerManualFeed() {
+        const button = document.getElementById('btn-feed-trigger');
+        const durationInput = document.getElementById('sched-feed-dur');
+        const duration = parseInt(durationInput.value) || 5;
+        
+        if (state.pond.feederActive) return; // already running
+        
+        state.pond.feederActive = true;
+        button.disabled = true;
+        button.innerHTML = `<i class="fa-solid fa-spinner fa-spin"></i> Memberi Pakan...`;
+        button.classList.add('active-firing');
+        
+        addLogEntry('manual', `Feeder pakan kolam ikan **diaktifkan manual** (${duration} detik).`);
+        
+        // Auto stop after duration
+        setTimeout(() => {
+            state.pond.feederActive = false;
+            button.disabled = false;
+            button.innerHTML = `<i class="fa-solid fa-bowl-food"></i> Beri Pakan Sekarang`;
+            button.classList.remove('active-firing');
+            addLogEntry('manual', 'Pemberian pakan manual selesai.');
+        }, duration * 1000);
+    }
+
+
+    /* ==========================================
+       IoT Data Processing & UI State Renderer
+       ========================================== */
+    
+    // Status Evaluator Utility
+    function evaluateStatus(value, limitConfig) {
+        if (!limitConfig) return 'standby';
+        
+        // Special case: Single min threshold (DO, Water Level)
+        if (limitConfig.minSafe !== undefined && limitConfig.maxSafe === undefined) {
+            if (value >= limitConfig.minSafe) return 'safe';
+            if (limitConfig.minWarn !== undefined && value >= limitConfig.minWarn) return 'warning';
+            return 'danger';
+        }
+        
+        // Multi limits (pH, Temp)
+        if (value >= limitConfig.minSafe && value <= limitConfig.maxSafe) return 'safe';
+        if (limitConfig.minWarn !== undefined && value >= limitConfig.minWarn && value <= limitConfig.maxWarn) return 'warning';
+        return 'danger';
+    }
+
+    function updateBadge(badgeId, status) {
+        const badge = document.getElementById(badgeId);
+        if (!badge) return;
+        
+        badge.className = 'status-badge ' + status;
+        if (status === 'safe') badge.innerText = 'Aman';
+        else if (status === 'warning') badge.innerText = 'Peringatan';
+        else if (status === 'danger') badge.innerText = 'Bahaya';
+        else badge.innerText = 'Normal';
+    }
+
+    // Dynamic UI rendering step
+    function renderDashboardUI() {
+        const pad = (n) => n < 10 ? '0' + n : n;
+        
+        // 1. Render Clock
+        document.getElementById('sim-clock').innerText = `${pad(state.clock.hour)}:${pad(state.clock.minute)} ${state.clock.ampm}`;
+        
+        // Day/Night text in Visualizer Card
+        const isNight = state.clock.hour >= 18 || state.clock.hour < 6;
+        const stageBadge = document.getElementById('day-stage');
+        if (isNight) {
+            stageBadge.className = 'status-badge warning';
+            stageBadge.innerText = 'Malam Hari (Standby)';
+        } else {
+            stageBadge.className = 'status-badge safe';
+            stageBadge.innerText = 'Siang Hari (Aktif)';
+        }
+
+        // 2. Dynamic Light & Dark Theme Swapper
+        const body = document.body;
+        if (isNight) {
+            if (!body.classList.contains('theme-dark')) {
+                body.classList.remove('theme-light');
+                body.classList.add('theme-dark');
+                // Adjust chart grids dynamically
+                if (mainChart) {
+                    mainChart.options.scales.x.grid.color = 'rgba(255, 255, 255, 0.03)';
+                    mainChart.options.scales.y.grid.color = 'rgba(255, 255, 255, 0.03)';
+                    mainChart.update();
+                }
+                addLogEntry('auto', 'Sistem beralih ke <strong>Mode Malam</strong> (Dark Theme).');
+            }
+        } else {
+            if (!body.classList.contains('theme-light')) {
+                body.classList.remove('theme-dark');
+                body.classList.add('theme-light');
+                // Adjust chart grids dynamically
+                if (mainChart) {
+                    mainChart.options.scales.x.grid.color = 'rgba(0, 0, 0, 0.05)';
+                    mainChart.options.scales.y.grid.color = 'rgba(0, 0, 0, 0.05)';
+                    mainChart.update();
+                }
+                addLogEntry('auto', 'Sistem beralih ke <strong>Mode Siang</strong> (Light Theme).');
+            }
+        }
+
+        // 3. Render SVG Animation Opacities & Positions
+        const skyNightBg = document.getElementById('sky-night-bg');
+        const svgSun = document.getElementById('svg-sun');
+        const svgMoon = document.getElementById('svg-moon');
+        const svgSolarGlow = document.getElementById('svg-solar-glow');
+        const sprinklerDrips = document.querySelectorAll('.water-sprinkler-drip');
+        const foodPellets = document.querySelectorAll('.food-pellet');
+
+        // Sun / Moon path coordinates
+        // Parabolic trajectory between x=50 to x=750, y=180 to y=40
+        let timeFactor; // 0 at sunrise (06:00), 0.5 at noon (12:00), 1 at sunset (18:00)
+        if (state.clock.hour >= 6 && state.clock.hour < 18) {
+            // Day
+            skyNightBg.setAttribute('opacity', '0');
+            svgSun.setAttribute('opacity', '1');
+            svgMoon.setAttribute('opacity', '0');
+            
+            timeFactor = ((state.clock.hour - 6) + (state.clock.minute / 60)) / 12;
+            const sunX = 50 + (timeFactor * 700);
+            const sunY = 180 - (Math.sin(timeFactor * Math.PI) * 140);
+            svgSun.setAttribute('cx', sunX);
+            svgSun.setAttribute('cy', sunY);
+            
+            // Solar glow scales with solar power
+            const solarGlowOpacity = Math.min(1, state.energy.power / 300);
+            svgSolarGlow.setAttribute('opacity', solarGlowOpacity);
+        } else {
+            // Night
+            skyNightBg.setAttribute('opacity', '0.95');
+            svgSun.setAttribute('opacity', '0');
+            svgMoon.setAttribute('opacity', '1');
+            svgSolarGlow.setAttribute('opacity', '0');
+            
+            // Moon trajectory
+            let moonHour = state.clock.hour < 6 ? state.clock.hour + 18 : state.clock.hour - 6;
+            timeFactor = (moonHour + (state.clock.minute / 60)) / 12;
+            const moonX = 50 + (timeFactor * 700);
+            const moonY = 180 - (Math.sin(timeFactor * Math.PI) * 140);
+            
+            // Re-draw crescent or move moon
+            // For simplicity, we move the moon group
+            svgMoon.setAttribute('transform', `translate(${moonX - 110}, ${moonY - 110})`);
+        }
+
+        // Sprinklers drops trigger
+        sprinklerDrips.forEach(drip => {
+            if (state.crop.pumpActive) {
+                drip.classList.add('active');
+            } else {
+                drip.classList.remove('active');
+            }
+        });
+
+        // Food Pellets trigger
+        foodPellets.forEach(pellet => {
+            if (state.pond.feederActive) {
+                pellet.classList.add('active');
+            } else {
+                pellet.classList.remove('active');
+            }
+        });
+
+        // 4. Render Energy Section
+        document.getElementById('val-solar-v').innerText = state.energy.voltage.toFixed(1);
+        document.getElementById('val-solar-a').innerText = state.energy.current.toFixed(1);
+        document.getElementById('val-solar-w').innerText = state.energy.power.toFixed(1);
+        document.getElementById('val-solar-kwh').innerText = state.energy.dailyAccumulation.toFixed(2);
+        
+        // Evaluate Solar States (0V is standby at night, otherwise warning/safe)
+        if (isNight) {
+            document.getElementById('badge-solar-v').className = 'status-badge standby';
+            document.getElementById('badge-solar-v').innerText = 'Standby';
+            document.getElementById('badge-solar-a').className = 'status-badge standby';
+            document.getElementById('badge-solar-a').innerText = 'Standby';
+            document.getElementById('badge-solar-w').className = 'status-badge standby';
+            document.getElementById('badge-solar-w').innerText = 'Standby';
+        } else {
+            const statusV = evaluateStatus(state.energy.voltage, limits.solar.v);
+            const statusA = evaluateStatus(state.energy.current, limits.solar.a);
+            updateBadge('badge-solar-v', statusV);
+            updateBadge('badge-solar-a', statusA);
+            
+            const badgeW = document.getElementById('badge-solar-w');
+            if (state.energy.power > 180) {
+                badgeW.className = 'status-badge safe';
+                badgeW.innerText = 'Optimal';
+            } else if (state.energy.power > 20) {
+                badgeW.className = 'status-badge warning';
+                badgeW.innerText = 'Rendah';
+            } else {
+                badgeW.className = 'status-badge danger';
+                badgeW.innerText = 'Kritis';
+            }
+        }
+
+        // Battery Ring rendering
+        const circleRadius = 20;
+        const circumference = 2 * Math.PI * circleRadius;
+        const offset = circumference - (state.energy.batteryPercentage / 100) * circumference;
+        document.getElementById('battery-ring').style.strokeDashoffset = offset;
+        document.getElementById('battery-val').innerText = state.energy.batteryPercentage + '%';
+        
+        // Backup Status bar
+        const sourceBadge = document.getElementById('power-source-badge');
+        const sourceName = document.getElementById('power-source-name');
+        const sourceSub = document.getElementById('power-source-sub');
+        const batteryRing = document.getElementById('battery-ring');
+
+        if (state.energy.sourceMode === 'Solar + Baterai') {
+            sourceBadge.className = 'source-badge';
+            sourceBadge.innerText = 'Solar + Baterai';
+            sourceName.innerText = 'Daya Mandiri PV & Baterai';
+            
+            if (state.energy.batteryStatus === 'Mengisi daya') {
+                sourceSub.innerHTML = `Mengisi daya (Solar surplus: +${state.energy.solarSurplus.toFixed(0)} W) • Penuh dalam ${state.energy.backupHours.toFixed(1)}j`;
+                batteryRing.style.stroke = 'var(--safe)';
+            } else if (state.energy.batteryStatus === 'Penuh') {
+                sourceSub.innerHTML = `Penuh (Solar berlebih: +${state.energy.solarSurplus.toFixed(0)} W) • Menyuplai sistem`;
+                batteryRing.style.stroke = 'var(--safe)';
+            } else {
+                sourceSub.innerHTML = `Mengosongkan daya (System load: ${state.energy.load} W) • Sisa backup: ${state.energy.backupHours.toFixed(1)}j`;
+                batteryRing.style.stroke = 'var(--warning)';
+            }
+        } else {
+            sourceBadge.className = 'source-badge warning';
+            sourceBadge.innerText = 'Grid Backup';
+            sourceName.innerText = 'Daya PLN Pasca-Bayar';
+            sourceSub.innerHTML = `Baterai Kritis (${state.energy.batteryPercentage}%) • Mengamankan jaringan IoT lokal`;
+            batteryRing.style.stroke = 'var(--danger)';
+        }
+
+        document.getElementById('load-val').innerText = `Load: ${state.energy.load} W`;
+
+        // 5. Render Aquaculture (Pond) Section
+        document.getElementById('val-pond-temp').innerText = state.pond.temp.toFixed(1);
+        document.getElementById('val-pond-ph').innerText = state.pond.ph.toFixed(2);
+        document.getElementById('val-pond-do').innerText = state.pond.do.toFixed(2);
+        document.getElementById('val-pond-level').innerText = state.pond.level.toFixed(1);
+
+        updateBadge('badge-pond-temp', evaluateStatus(state.pond.temp, limits.pond.temp));
+        updateBadge('badge-pond-ph', evaluateStatus(state.pond.ph, limits.pond.ph));
+        updateBadge('badge-pond-do', evaluateStatus(state.pond.do, limits.pond.do));
+        updateBadge('badge-pond-level', evaluateStatus(state.pond.level, limits.pond.level));
+
+        const feederStatusBox = document.getElementById('status-feeder-box');
+        if (state.pond.feederActive) {
+            feederStatusBox.className = 'actuator-glowing-status active';
+            feederStatusBox.innerText = 'ON';
+        } else {
+            feederStatusBox.className = 'actuator-glowing-status inactive';
+            feederStatusBox.innerText = 'OFF';
+        }
+
+        // 6. Render Crops Section
+        document.getElementById('val-crop-moist').innerText = state.crop.moisture.toFixed(1);
+        document.getElementById('val-crop-temp').innerText = state.crop.temp.toFixed(1);
+        document.getElementById('val-crop-light').innerText = state.crop.light.toFixed(1);
+        
+        updateBadge('badge-crop-moist', evaluateStatus(state.crop.moisture, limits.crop.moist));
+        updateBadge('badge-crop-temp', evaluateStatus(state.crop.temp, limits.crop.temp));
+
+        const lightBadge = document.getElementById('badge-crop-light');
+        if (state.crop.light > 60) {
+            lightBadge.className = 'status-badge safe';
+            lightBadge.innerText = 'Terik';
+        } else if (state.crop.light > 10) {
+            lightBadge.className = 'status-badge standby';
+            lightBadge.innerText = 'Berawan';
+        } else {
+            lightBadge.className = 'status-badge warning';
+            lightBadge.innerText = 'Gelap';
+        }
+
+        const pumpStatusText = document.getElementById('val-crop-pump');
+        const pumpBadge = document.getElementById('badge-crop-pump');
+        const pumpStatusBox = document.getElementById('status-pump-box');
+        if (state.crop.pumpActive) {
+            pumpStatusText.innerText = 'MENYALA';
+            pumpStatusText.style.color = 'var(--safe)';
+            pumpBadge.className = 'status-badge safe';
+            pumpBadge.innerText = 'ON';
+            pumpStatusBox.className = 'actuator-glowing-status active';
+            pumpStatusBox.innerText = 'ON';
+        } else {
+            pumpStatusText.innerText = 'MATI';
+            pumpStatusText.style.color = 'var(--text-secondary)';
+            pumpBadge.className = 'status-badge standby';
+            pumpBadge.innerText = 'OFF';
+            pumpStatusBox.className = 'actuator-glowing-status inactive';
+            pumpStatusBox.innerText = 'OFF';
+        }
+    }
+
+
+    /* ==========================================
+       IoT Simulated Sensor Noise & Logic loop
+       ========================================== */
+    
+    // Smooth random walk bounded generator
+    function randomWalk(current, stepSize, minBound, maxBound) {
+        const noise = (Math.random() - 0.5) * stepSize;
+        const newVal = current + noise;
+        return Math.max(minBound, Math.min(maxBound, newVal));
+    }
+
+    function runSimulationStep() {
+        // A. Accelerate Clock: +3 minutes simulated time per 1.5 seconds real time
+        state.clock.minute += 3;
+        if (state.clock.minute >= 60) {
+            state.clock.minute = 0;
+            state.clock.hour += 1;
+            if (state.clock.hour >= 24) {
+                state.clock.hour = 0;
+                state.clock.day += 1;
+            }
+        }
+        state.clock.ampm = state.clock.hour >= 12 ? 'PM' : 'AM';
+        
+        const currentHour24 = state.clock.hour;
+        const currentMin = state.clock.minute;
+        const isNight = currentHour24 >= 18 || currentHour24 < 6;
+
+        // B. Calculate Solar Panel Physics
+        // Peak intensity is at 12:00 PM (12.0), drops to 0 at sunset/rise
+        let sunIntensity = 0;
+        if (!isNight) {
+            // Sinusoidal arc peaking at 12:00
+            const dayProgress = ((currentHour24 - 6) + (currentMin / 60)) / 12;
+            sunIntensity = Math.sin(dayProgress * Math.PI);
+        }
+
+        // Calculate electrical variables
+        if (sunIntensity > 0) {
+            state.energy.voltage = sunIntensity * 36 + 8 + (Math.random() - 0.5) * 1.5; // Base 12V-44V
+            state.energy.current = sunIntensity * 7.5 + 0.5 + (Math.random() - 0.5) * 0.3; // Base 0.5A-8A
+            state.energy.power = state.energy.voltage * state.energy.current;
+            state.energy.solarSurplus = Math.max(0, state.energy.power - state.energy.load);
+            state.energy.dailyAccumulation += (state.energy.power * (3 / 60)) / 1000; // kWh (3 mins interval)
+        } else {
+            state.energy.voltage = 0.0;
+            state.energy.current = 0.0;
+            state.energy.power = 0.0;
+            state.energy.solarSurplus = 0.0;
+        }
+
+        // C. Battery Charge / Discharge Simulation
+        const batteryCapacityKwh = 2.4; // 2400 Wh capacity
+        const baseConsumptionPercentPerTick = (state.energy.load / 1000) * (3 / 60) / batteryCapacityKwh * 100;
+        const chargeIncreasePercentPerTick = (state.energy.solarSurplus / 1000) * (3 / 60) / batteryCapacityKwh * 100;
+
+        if (state.energy.power > state.energy.load) {
+            // Charging
+            state.energy.batteryPercentage = Math.min(100, state.energy.batteryPercentage + chargeIncreasePercentPerTick);
+            state.energy.batteryStatus = state.energy.batteryPercentage === 100 ? 'Penuh' : 'Mengisi daya';
+            
+            // Backup calculation: hours to full charge
+            if (state.energy.batteryPercentage < 100) {
+                const remainingWh = (100 - state.energy.batteryPercentage) / 100 * batteryCapacityKwh * 1000;
+                state.energy.backupHours = remainingWh / state.energy.solarSurplus;
+            } else {
+                state.energy.backupHours = 24.0;
+            }
+        } else {
+            // Discharging (Only from battery if battery mode active)
+            if (state.energy.sourceMode === 'Solar + Baterai') {
+                state.energy.batteryPercentage = Math.max(0, state.energy.batteryPercentage - baseConsumptionPercentPerTick);
+                state.energy.batteryStatus = 'Mengosongkan daya';
+                
+                // Backup calculation: hours left
+                state.energy.backupHours = (state.energy.batteryPercentage / 100) * batteryCapacityKwh * 1000 / state.energy.load;
+
+                // Threshold Grid Backup kick-in
+                if (state.energy.batteryPercentage < 10) {
+                    state.energy.sourceMode = 'Grid Power';
+                    addLogEntry('alert', '<strong>BAHAYA:</strong> Daya baterai < 10%. Mengalihkan suplai utama ke <strong>Grid PLN</strong> untuk proteksi.');
+                }
+            } else {
+                // In Grid Mode, slowly charge battery if surplus exists, otherwise just wait
+                state.energy.batteryStatus = 'Mengisi daya (Grid)';
+                state.energy.batteryPercentage = Math.min(100, state.energy.batteryPercentage + 0.1); // Slow trickle charge from grid
+                state.energy.backupHours = 0;
+                
+                // Switch back to Battery Mode when sufficiently charged
+                if (state.energy.batteryPercentage >= 35) {
+                    state.energy.sourceMode = 'Solar + Baterai';
+                    addLogEntry('auto', 'Daya baterai pulih ke 35%. Sistem kembali menggunakan <strong>Solar + Baterai</strong>.');
+                }
+            }
+        }
+
+        // D. Calculate Fish Pond values
+        // Suhu air fluctuates with time of day (peaking at 15:00)
+        const timeRad = ((currentHour24 - 15) / 24) * 2 * Math.PI;
+        const tempBase = 28.5 + Math.cos(timeRad) * 1.5;
+        state.pond.temp = randomWalk(tempBase, 0.2, 24.5, 33.5);
+        state.pond.ph = randomWalk(state.pond.ph, 0.05, 6.9, 8.1);
+        
+        // Dissolved Oxygen drops when temperature is high, slightly increases if bubbles active
+        const doBase = 6.8 - (state.pond.temp - 26) * 0.25;
+        state.pond.do = randomWalk(doBase, 0.15, 3.8, 7.5);
+
+        // Alert threshold checks
+        if (state.pond.do < 4.0) {
+            addLogEntry('alert', `<strong>KADAR DO KRITIS:</strong> Dissolved Oxygen kolam ikan drop ke ${state.pond.do.toFixed(2)} mg/L! Aerator darurat diaktifkan.`);
+        }
+
+        // E. Calculate Crop values
+        // Kelembaban drops naturally, increases rapidly if watering pump is active
+        if (state.crop.pumpActive) {
+            state.crop.moisture = Math.min(85, state.crop.moisture + 8.5); // Rapid absorption
+            
+            // Auto-Mode Cutoff
+            if (state.crop.pumpAutoMode && state.crop.moisture >= 80) {
+                state.crop.pumpActive = false;
+                addLogEntry('auto', `Kelembaban tanah tercapai (${state.crop.moisture.toFixed(1)}%). Pompa penyiraman dimatikan.`);
+            }
+        } else {
+            state.crop.moisture = Math.max(15, state.crop.moisture - 0.6); // Slow evaporation
+            
+            // Auto-Mode Trigger
+            if (state.crop.pumpAutoMode && state.crop.moisture < state.crop.threshold) {
+                state.crop.pumpActive = true;
+                addLogEntry('auto', `<strong>KELEMBABAN RENDAH:</strong> Kelembaban tanah (${state.crop.moisture.toFixed(1)}% < ${state.crop.threshold}%) mengaktifkan pompa otomatis.`);
+            }
+        }
+
+        // Temperature & Light of crops area
+        const cropTempBase = 30.5 + Math.cos(timeRad) * 2.5;
+        state.crop.temp = randomWalk(cropTempBase, 0.3, 23.0, 35.5);
+        state.crop.light = sunIntensity * 72.0 + (sunIntensity > 0 ? (Math.random() - 0.5) * 5 : 0);
+
+        // F. Auto-Feeder Schedule Engine (When in AUTO)
+        if (state.pond.feederAutoMode && !state.pond.feederActive) {
+            // Check time match for "Hour:Minute"
+            const schedTime = document.getElementById('sched-feed-time').value.trim();
+            const schedFreq = parseInt(document.getElementById('sched-feed-freq').value);
+            const schedDur = parseInt(document.getElementById('sched-feed-dur').value) || 5;
+
+            // Generate daily target times based on selected frequency
+            const targets = [];
+            const [schedHour, schedMin] = schedTime.split(':').map(Number);
+            
+            if (!isNaN(schedHour)) {
+                targets.push({ h: schedHour, m: schedMin });
+                
+                // If 2x daily: add a second feed 12 hours later
+                if (schedFreq === 2) {
+                    targets.push({ h: (schedHour + 12) % 24, m: schedMin });
+                }
+                // If 3x daily: add feeds spaced by 8 hours
+                else if (schedFreq === 3) {
+                    targets.push({ h: (schedHour + 8) % 24, m: schedMin });
+                    targets.push({ h: (schedHour + 16) % 24, m: schedMin });
+                }
+            }
+
+            // Test target matches
+            targets.forEach(tgt => {
+                if (currentHour24 === tgt.h && currentMin === tgt.m) {
+                    // Activate feeder
+                    state.pond.feederActive = true;
+                    addLogEntry('auto', `<strong>JADWAL PAKAN:</strong> Feeder otomatis aktif sesuai jadwal (${pad(tgt.h)}:${pad(tgt.m)}) untuk ${schedDur} detik.`);
+                    
+                    // Stop feeder after duration
+                    setTimeout(() => {
+                        state.pond.feederActive = false;
+                        addLogEntry('auto', 'Pemberian pakan otomatis selesai.');
+                    }, schedDur * 1000);
+                }
+            });
+        }
+
+        // G. Update dynamic UI panels
+        renderDashboardUI();
+
+        // H. Update interactive Trend Chart
+        const clockTimeLabel = `${pad(state.clock.hour)}:${pad(state.clock.minute)}`;
+        updateChartData(
+            clockTimeLabel, 
+            state.energy.power, 
+            state.crop.moisture, 
+            state.pond.temp
+        );
+    }
+
+    // Initialize application on load
+    window.onload = function() {
+        initChart();
+        renderDashboardUI();
+        addLogEntry('auto', '<strong>Sistem Utama Diinisialisasi.</strong> Seluruh sensor IoT terhubung dan merekam data.');
+        
+        // Run simulator tick loop every 1.5s
+        setInterval(runSimulationStep, 1500);
+    };
+</script>
+
+</body>
+</html>
