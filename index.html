@@ -15,6 +15,8 @@
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <!-- Chart.js -->
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <!-- MQTT.js for Browser MQTT over WebSocket -->
+    <script src="https://unpkg.com/mqtt@5.3.5/dist/mqtt.min.js"></script>
     <style>
         /* ==========================================
            LOGIN PAGE STYLES
@@ -2363,6 +2365,12 @@
                             <rect x="330" y="172" width="22" height="20" rx="3" fill="#1e293b" stroke="#475569"
                                 stroke-width="1" />
                             <path d="M 341 192 L 341 202 L 336 205" fill="none" stroke="#475569" stroke-width="2" />
+                            <!-- Motor Servo Arm Dispenser -->
+                            <g id="svg-feeder-servo-arm" style="transform-origin: 341px 192px; transition: transform 0.35s cubic-bezier(0.34, 1.56, 0.64, 1);">
+                                <line x1="341" y1="192" x2="353" y2="192" stroke="#38bdf8" stroke-width="2.5" stroke-linecap="round" />
+                                <circle cx="341" cy="192" r="2.5" fill="#0284c7" />
+                            </g>
+                            <text id="svg-servo-status-text" x="341" y="165" font-size="7.5" fill="#94a3b8" text-anchor="middle" font-weight="700">SERVO: 0°</text>
                             <!-- Falling fish food pellets -->
                             <circle class="food-pellet p1" cx="336" cy="207" r="1.5" fill="#ca8a04" />
                             <circle class="food-pellet p2" cx="337" cy="215" r="1.5" fill="#ca8a04" />
@@ -2458,20 +2466,20 @@
 
             <!-- Module Navigation Bar (Below Visualizer, full-width) -->
             <div class="module-navigation-bar">
-                <button class="module-tab-btn active" onclick="switchModuleTab('moist', this)">
+                <button class="module-tab-btn active" onclick="switchModuleTab('all', this)">
+                    <i class="fa-solid fa-layer-group"></i> Semua Modul (Sistem Terpadu)
+                </button>
+                <button class="module-tab-btn" onclick="switchModuleTab('moist', this)">
                     <i class="fa-solid fa-temperature-half"></i> Sensor Suhu &amp; Lembap
                 </button>
                 <button class="module-tab-btn" onclick="switchModuleTab('pump', this)">
                     <i class="fa-solid fa-pump-soap"></i> Pompa Air Irigasi
                 </button>
                 <button class="module-tab-btn" onclick="switchModuleTab('feed', this)">
-                    <i class="fa-solid fa-shrimp"></i> Pemberian Pakan Ikan
+                    <i class="fa-solid fa-shrimp"></i> Pemberian Pakan Ikan (Servo)
                 </button>
                 <button class="module-tab-btn" onclick="switchModuleTab('device', this)">
                     <i class="fa-solid fa-microchip"></i> Status Perangkat &amp; Daya
-                </button>
-                <button class="module-tab-btn" onclick="switchModuleTab('all', this)">
-                    <i class="fa-solid fa-layer-group"></i> Semua Modul
                 </button>
             </div>
 
@@ -2612,7 +2620,7 @@
                 </div>
 
                 <!-- ===== CARD 2: Pompa Air Irigasi ===== -->
-                <div class="glass-card module-card" id="card-module-pump">
+                <div class="glass-card module-card active-view" id="card-module-pump">
                     <div class="card-header">
                         <h2 class="card-title">
                             <i class="fa-solid fa-pump-soap" style="color:var(--primary);"></i> Pompa Air Irigasi
@@ -2730,10 +2738,10 @@
                 </div>
 
                 <!-- ===== CARD 3: Pemberian Pakan Ikan ===== -->
-                <div class="glass-card module-card" id="card-module-feed">
+                <div class="glass-card module-card active-view" id="card-module-feed">
                     <div class="card-header">
                         <h2 class="card-title">
-                            <i class="fa-solid fa-shrimp" style="color:var(--pond-blue);"></i> Pemberian Pakan Ikan
+                            <i class="fa-solid fa-shrimp" style="color:var(--pond-blue);"></i> Pemberian Pakan Ikan (Servo)
                         </h2>
                         <span class="actuator-glowing-status inactive" id="status-feeder-box">OFF</span>
                     </div>
@@ -2747,7 +2755,7 @@
                                         <i class="fa-solid fa-clock"></i>
                                     </div>
                                     <div>
-                                        <h3>Jadwal Otomatis</h3>
+                                        <h3>Jadwal &amp; Siklus Otomatis</h3>
                                         <span style="font-size:10px; color:var(--text-secondary);">Pakan
                                             terjadwal</span>
                                     </div>
@@ -2786,6 +2794,7 @@
                                     id="feed-schedule-badges">
                                     <span class="feed-sched-badge">12:00</span>
                                     <span class="feed-sched-badge">00:00</span>
+                                    <span class="feed-sched-badge" style="background:rgba(14,165,233,0.15); border-color:var(--pond-blue); color:var(--pond-blue);"><i class="fa-solid fa-rotate"></i> Auto-Loop 30s</span>
                                 </div>
                             </div>
                         </div>
@@ -2798,7 +2807,7 @@
                                         <i class="fa-solid fa-hand"></i>
                                     </div>
                                     <div>
-                                        <h3>Kontrol Manual</h3>
+                                        <h3>Kontrol Manual Servo</h3>
                                         <span style="font-size:10px; color:var(--text-secondary);">Aktifkan
                                             langsung</span>
                                     </div>
@@ -2815,9 +2824,13 @@
                                     style="display:flex; justify-content:space-between; font-size:10px; color:var(--text-muted); margin-top:-4px;">
                                     <span>Kecil</span><span>Sedang</span><span>Besar</span>
                                 </div>
-                                <div class="input-label" style="margin-top:6px;">
+                                <div class="input-label" style="margin-top:8px;">
                                     <span>Status Feeder:</span>
                                     <span class="actuator-glowing-status inactive" id="status-feeder-box2">OFF</span>
+                                </div>
+                                <div class="input-label" style="margin-top:8px; padding:6px 10px; background:rgba(14,165,233,0.08); border-radius:8px; border:1px solid rgba(14,165,233,0.2);">
+                                    <span>Posisi Motor Servo:</span>
+                                    <span class="actuator-glowing-status inactive" id="servo-angle-display">0° (Standby Tutup)</span>
                                 </div>
                             </div>
                             <button class="action-btn" id="btn-feed-trigger" disabled onclick="triggerManualFeed()">
@@ -2829,7 +2842,7 @@
                 </div>
 
                 <!-- ===== CARD 4: Status Perangkat & Daya ===== -->
-                <div class="glass-card module-card" id="card-module-device">
+                <div class="glass-card module-card active-view" id="card-module-device">
                     <div class="card-header">
                         <h2 class="card-title">
                             <i class="fa-solid fa-microchip" style="color:var(--solar-gold);"></i> Status Perangkat
@@ -2998,6 +3011,9 @@
                 <button class="esp32-tab-btn active" id="tab-btn-wifi" onclick="switchEsp32Tab('wifi', this)">
                     <i class="fa-solid fa-wifi"></i> WiFi WebSocket
                 </button>
+                <button class="esp32-tab-btn" id="tab-btn-mqtt" onclick="switchEsp32Tab('mqtt', this)">
+                    <i class="fa-solid fa-tower-broadcast"></i> MQTT Broker
+                </button>
                 <button class="esp32-tab-btn" id="tab-btn-usb" onclick="switchEsp32Tab('usb', this)">
                     <i class="fa-brands fa-usb"></i> USB Serial Direct
                 </button>
@@ -3035,6 +3051,63 @@
                     <span>Status ESP32: <strong id="esp32-info-mode" style="color:var(--text-primary);">SIMULASI STANDALONE</strong></span>
                     <span id="esp32-info-rssi">RSSI: -- dBm</span>
                     <span id="esp32-info-uptime">Uptime: --</span>
+                </div>
+            </div>
+
+            <!-- Tab 2: MQTT Broker (Over WebSocket) -->
+            <div class="esp32-tab-content" id="tab-esp32-mqtt">
+                <div style="font-size:12px; color:var(--text-secondary); line-height:1.5;">
+                    Koneksi dashboard via <strong>MQTT over WebSocket</strong>. Cocok untuk monitoring jarak jauh/cloud internet (ESP32 dan browser tidak harus berada di jaringan WiFi yang sama).
+                </div>
+                <div class="esp32-input-group">
+                    <label>
+                        <span>MQTT Broker WebSocket URL (WSS / WS):</span>
+                        <span id="esp32-mqtt-status-text" style="color:var(--warning);">Belum Terhubung</span>
+                    </label>
+                    <div style="display:flex; gap:10px;">
+                        <input type="text" class="esp32-input" id="esp32-mqtt-url" value="wss://broker.emqx.io:8084/mqtt" placeholder="wss://broker.emqx.io:8084/mqtt">
+                        <button class="action-btn" id="btn-esp32-mqtt-connect" onclick="toggleEsp32Mqtt()" style="width:auto; padding:10px 18px; white-space:nowrap;">
+                            <i class="fa-solid fa-tower-broadcast"></i> Hubungkan MQTT
+                        </button>
+                    </div>
+                </div>
+
+                <div style="display:grid; grid-template-columns: 1fr 1fr; gap:10px;">
+                    <div class="esp32-input-group">
+                        <label><span>Topik Sensor (Subscribe Telemetri):</span></label>
+                        <input type="text" class="esp32-input" id="esp32-mqtt-sub" value="solarfloating/sensor" placeholder="solarfloating/sensor">
+                    </div>
+                    <div class="esp32-input-group">
+                        <label><span>Topik Perintah (Publish Aktuator):</span></label>
+                        <input type="text" class="esp32-input" id="esp32-mqtt-pub" value="solarfloating/command" placeholder="solarfloating/command">
+                    </div>
+                </div>
+
+                <div style="display:grid; grid-template-columns: 1.2fr 1fr 1fr; gap:10px;">
+                    <div class="esp32-input-group">
+                        <label><span>Client ID (Web Dashboard):</span></label>
+                        <input type="text" class="esp32-input" id="esp32-mqtt-clientid" value="" placeholder="Otomatis acak jika kosong">
+                    </div>
+                    <div class="esp32-input-group">
+                        <label><span>Username (Opsional):</span></label>
+                        <input type="text" class="esp32-input" id="esp32-mqtt-user" value="" placeholder="Kosongkan jika publik">
+                    </div>
+                    <div class="esp32-input-group">
+                        <label><span>Password (Opsional):</span></label>
+                        <input type="password" class="esp32-input" id="esp32-mqtt-pass" value="" placeholder="Kosongkan jika publik">
+                    </div>
+                </div>
+
+                <div style="display:flex; gap:8px; flex-wrap:wrap; font-size:11px;">
+                    <button class="chart-tab-btn" onclick="applyMqttPreset('emqx')">Preset EMQX Cloud (WSS 8084)</button>
+                    <button class="chart-tab-btn" onclick="applyMqttPreset('hivemq')">Preset HiveMQ Public (WSS 8884)</button>
+                    <button class="chart-tab-btn" onclick="applyMqttPreset('mosquitto')">Preset Mosquitto Test (WSS 8081)</button>
+                    <button class="chart-tab-btn" onclick="applyMqttPreset('local')">Preset Localhost Mosquitto (WS 9001)</button>
+                </div>
+
+                <div style="padding:10px 14px; background:rgba(20,184,166,0.06); border-radius:10px; border:1px solid rgba(20,184,166,0.2); font-size:11px; color:var(--text-secondary); line-height:1.5;">
+                    <i class="fa-solid fa-circle-info" style="color:var(--primary); margin-right:4px;"></i>
+                    <strong>Info Port ESP32 vs Browser:</strong> Browser memakai koneksi WebSocket aman (WSS port <code>8084</code> atau <code>8884</code>). Di ESP32 Arduino, gunakan broker host yang sama dengan port standar TCP MQTT <code>1883</code>.
                 </div>
             </div>
 
@@ -3099,10 +3172,10 @@
                             <td>Penyiraman Otomatis / Manual</td>
                         </tr>
                         <tr>
-                            <td><strong>Relay Feeder Pakan Ikan</strong></td>
+                            <td><strong>Motor Servo Feeder Pakan (SG90/MG995)</strong></td>
                             <td><span class="esp32-pin-badge">GPIO 19</span></td>
-                            <td>Output Relay</td>
-                            <td>Pemberian Pakan Terjadwal / Manual</td>
+                            <td>PWM Servo Signal</td>
+                            <td>Menggerakkan dispenser pelet pakan ikan (0° Standby - 90° Menebar)</td>
                         </tr>
                     </tbody>
                 </table>
@@ -3309,8 +3382,11 @@
 
         const esp32State = {
             connected: false,
-            mode: 'sim', // 'ws' | 'serial' | 'sim'
+            mode: 'sim', // 'ws' | 'mqtt' | 'serial' | 'sim'
             ws: null,
+            mqttClient: null,
+            mqttTopicSub: 'solarfloating/sensor',
+            mqttTopicPub: 'solarfloating/command',
             serialPort: null,
             serialReader: null,
             serialKeepReading: false,
@@ -3555,8 +3631,187 @@
             }
         }
 
+        // --- MQTT Over WebSocket Connection ---
+        function applyMqttPreset(type) {
+            const urlEl = document.getElementById('esp32-mqtt-url');
+            if (!urlEl) return;
+            if (type === 'emqx') {
+                urlEl.value = 'wss://broker.emqx.io:8084/mqtt';
+            } else if (type === 'hivemq') {
+                urlEl.value = 'wss://broker.hivemq.com:8884/mqtt';
+            } else if (type === 'mosquitto') {
+                urlEl.value = 'wss://test.mosquitto.org:8081';
+            } else if (type === 'local') {
+                urlEl.value = 'ws://localhost:9001';
+            }
+        }
+
+        function toggleEsp32Mqtt() {
+            if (esp32State.connected && esp32State.mode === 'mqtt') {
+                disconnectEsp32Mqtt();
+            } else {
+                connectEsp32Mqtt();
+            }
+        }
+
+        function connectEsp32Mqtt() {
+            if (typeof mqtt === 'undefined') {
+                alert('Library MQTT.js gagal dimuat dari CDN. Pastikan laptop terhubung ke internet.');
+                return;
+            }
+
+            if (esp32State.connected) {
+                disconnectEsp32();
+            }
+
+            const url = (document.getElementById('esp32-mqtt-url')?.value || '').trim();
+            const topicSub = (document.getElementById('esp32-mqtt-sub')?.value || '').trim() || 'solarfloating/sensor';
+            const topicPub = (document.getElementById('esp32-mqtt-pub')?.value || '').trim() || 'solarfloating/command';
+            let clientId = (document.getElementById('esp32-mqtt-clientid')?.value || '').trim();
+            if (!clientId) {
+                clientId = 'web_solar_' + Math.random().toString(16).substring(2, 8);
+                const clientEl = document.getElementById('esp32-mqtt-clientid');
+                if (clientEl) clientEl.value = clientId;
+            }
+            const username = (document.getElementById('esp32-mqtt-user')?.value || '').trim();
+            const password = (document.getElementById('esp32-mqtt-pass')?.value || '').trim();
+
+            if (!url) {
+                alert('Silakan masukkan URL WebSocket MQTT Broker!');
+                return;
+            }
+
+            const btn = document.getElementById('btn-esp32-mqtt-connect');
+            const statusText = document.getElementById('esp32-mqtt-status-text');
+
+            if (btn) {
+                btn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> Menghubungkan...';
+                btn.disabled = true;
+            }
+            if (statusText) {
+                statusText.innerText = 'Menghubungkan ke broker...';
+                statusText.style.color = 'var(--solar-gold)';
+            }
+            logToEsp32Console(`[MQTT] Menghubungi Broker: ${url} (Client ID: ${clientId})...`);
+
+            const options = {
+                clientId: clientId,
+                clean: true,
+                connectTimeout: 8000,
+                reconnectPeriod: 5000
+            };
+            if (username) options.username = username;
+            if (password) options.password = password;
+
+            try {
+                const client = mqtt.connect(url, options);
+                esp32State.mqttClient = client;
+                esp32State.mqttTopicSub = topicSub;
+                esp32State.mqttTopicPub = topicPub;
+
+                client.on('connect', () => {
+                    esp32State.connected = true;
+                    esp32State.mode = 'mqtt';
+                    if (btn) {
+                        btn.innerHTML = '<i class="fa-solid fa-link-slash"></i> Putuskan MQTT';
+                        btn.disabled = false;
+                    }
+                    if (statusText) {
+                        const hostLabel = url.replace(/^wss?:\/\//, '').split('/')[0];
+                        statusText.innerText = 'Terhubung (' + hostLabel + ')';
+                        statusText.style.color = 'var(--safe)';
+                    }
+
+                    // Subscribe to telemetry topic
+                    client.subscribe(topicSub, (err) => {
+                        if (!err) {
+                            logToEsp32Console(`[MQTT] Subscribed ke topik: ${topicSub}`);
+                        } else {
+                            logToEsp32Console(`[MQTT ERROR] Gagal subscribe: ${err.message}`);
+                        }
+                    });
+
+                    updateEsp32ConnectionUI(true, 'MQTT: ' + topicSub);
+                    addLogEntry('auto', `<strong>ESP32 Terhubung via MQTT:</strong> Berhasil tersambung ke broker (${url}). Data sensor real-time aktif.`);
+                    logToEsp32Console(`[MQTT] Connected! Mendengarkan di '${topicSub}' & kirim perintah ke '${topicPub}'`);
+
+                    // Request initial state / telemetry ping
+                    sendEsp32Command({ cmd: 'get_data' });
+                });
+
+                client.on('message', (topic, message) => {
+                    const raw = message.toString();
+                    handleIncomingEsp32Payload(raw);
+                });
+
+                client.on('error', (err) => {
+                    console.error('MQTT Error:', err);
+                    logToEsp32Console(`[MQTT ERROR] ${err.message}`);
+                    if (statusText) {
+                        statusText.innerText = 'Error: ' + err.message;
+                        statusText.style.color = 'var(--danger)';
+                    }
+                });
+
+                client.on('close', () => {
+                    const wasConnected = esp32State.connected && esp32State.mode === 'mqtt';
+                    if (wasConnected) {
+                        esp32State.connected = false;
+                        esp32State.mode = 'sim';
+                        if (btn) {
+                            btn.innerHTML = '<i class="fa-solid fa-tower-broadcast"></i> Hubungkan MQTT';
+                            btn.disabled = false;
+                        }
+                        if (statusText) {
+                            statusText.innerText = 'Terputus';
+                            statusText.style.color = 'var(--text-muted)';
+                        }
+                        updateEsp32ConnectionUI(false);
+                        addLogEntry('alert', '<strong>MQTT Terputus:</strong> Koneksi ke broker MQTT terputus. Beralih ke simulasi.');
+                        logToEsp32Console('[MQTT] Koneksi terputus.');
+                    }
+                });
+            } catch (err) {
+                if (btn) {
+                    btn.innerHTML = '<i class="fa-solid fa-tower-broadcast"></i> Hubungkan MQTT';
+                    btn.disabled = false;
+                }
+                if (statusText) {
+                    statusText.innerText = 'Error: ' + err.message;
+                    statusText.style.color = 'var(--danger)';
+                }
+                alert('Gagal menghubungkan MQTT: ' + err.message);
+            }
+        }
+
+        function disconnectEsp32Mqtt() {
+            if (esp32State.mqttClient) {
+                try {
+                    esp32State.mqttClient.end(true);
+                } catch (e) {}
+                esp32State.mqttClient = null;
+            }
+            esp32State.connected = false;
+            esp32State.mode = 'sim';
+
+            const btn = document.getElementById('btn-esp32-mqtt-connect');
+            if (btn) {
+                btn.innerHTML = '<i class="fa-solid fa-tower-broadcast"></i> Hubungkan MQTT';
+                btn.disabled = false;
+            }
+            const statusText = document.getElementById('esp32-mqtt-status-text');
+            if (statusText) {
+                statusText.innerText = 'Terputus';
+                statusText.style.color = 'var(--text-muted)';
+            }
+            updateEsp32ConnectionUI(false);
+            addLogEntry('alert', '<strong>ESP32 MQTT Ditutup:</strong> Kembali ke mode simulasi IoT.');
+            logToEsp32Console('[MQTT] Client disconnected.');
+        }
+
         function disconnectEsp32() {
             if (esp32State.mode === 'ws') disconnectEsp32WebSocket();
+            else if (esp32State.mode === 'mqtt') disconnectEsp32Mqtt();
             else if (esp32State.mode === 'serial') disconnectEsp32WebSerial();
         }
 
@@ -3567,6 +3822,8 @@
 
             if (esp32State.mode === 'ws' && esp32State.ws && esp32State.ws.readyState === WebSocket.OPEN) {
                 esp32State.ws.send(jsonStr);
+            } else if (esp32State.mode === 'mqtt' && esp32State.mqttClient && esp32State.mqttClient.connected) {
+                esp32State.mqttClient.publish(esp32State.mqttTopicPub, jsonStr);
             } else if (esp32State.mode === 'serial' && esp32State.serialPort && esp32State.serialPort.writable) {
                 try {
                     const textEncoder = new TextEncoderStream();
@@ -3603,6 +3860,37 @@
                     }
                     if (data.water_temp !== undefined) {
                         state.pond.temp = parseFloat(data.water_temp);
+                    }
+
+                    // Sinkronisasi status aktuator dari ESP32
+                    if (data.pump_state !== undefined) {
+                        state.crop.pumpActive = Boolean(data.pump_state);
+                    }
+                    if (data.feeder_state !== undefined) {
+                        state.pond.feederActive = Boolean(data.feeder_state);
+                    }
+                    if (data.servo_angle !== undefined) {
+                        state.pond.servoAngle = parseInt(data.servo_angle);
+                    }
+                    if (data.pump_mode !== undefined) {
+                        state.crop.pumpAutoMode = (data.pump_mode === 'AUTO');
+                        const chkPump = document.getElementById('toggle-mode-pump');
+                        const lblPump = document.getElementById('label-mode-pump');
+                        if (chkPump) chkPump.checked = state.crop.pumpAutoMode;
+                        if (lblPump) {
+                            lblPump.innerText = state.crop.pumpAutoMode ? 'AUTO' : 'MANUAL';
+                            lblPump.className = 'mode-label ' + (state.crop.pumpAutoMode ? 'auto-label' : 'manual-label');
+                        }
+                    }
+                    if (data.feeder_mode !== undefined) {
+                        state.pond.feederAutoMode = (data.feeder_mode === 'AUTO');
+                        const chkFeed = document.getElementById('toggle-mode-feed');
+                        const lblFeed = document.getElementById('label-mode-feed');
+                        if (chkFeed) chkFeed.checked = state.pond.feederAutoMode;
+                        if (lblFeed) {
+                            lblFeed.innerText = state.pond.feederAutoMode ? 'AUTO' : 'MANUAL';
+                            lblFeed.className = 'mode-label ' + (state.pond.feederAutoMode ? 'auto-label' : 'manual-label');
+                        }
                     }
 
                     // Telemetry metadata
@@ -3661,7 +3949,8 @@
                     infoMode.style.color = 'var(--safe)';
                 }
                 if (devEsp32Status) {
-                    devEsp32Status.innerText = 'ONLINE (' + (esp32State.mode === 'ws' ? 'WiFi' : 'USB') + ')';
+                    const modeLabel = esp32State.mode === 'ws' ? 'WiFi' : (esp32State.mode === 'mqtt' ? 'MQTT' : 'USB');
+                    devEsp32Status.innerText = 'ONLINE (' + modeLabel + ')';
                     devEsp32Status.style.color = 'var(--safe)';
                 }
                 if (devEsp32Icon) {
@@ -3742,6 +4031,7 @@
                 level: 92.4,
                 feederActive: false,
                 feederAutoMode: true,
+                servoAngle: 0,
                 scheduledTime: '12:00',
                 frequency: '2',
                 duration: 5
@@ -4075,6 +4365,7 @@
                     label.innerText = 'AUTO';
                     label.className = 'mode-label auto-label';
                     addLogEntry('auto', 'Mode penyiraman tanaman diubah ke <strong>OTOMATIS</strong>.');
+                    sendEsp32Command({ cmd: 'pump_auto' });
                 } else {
                     slider.disabled = true;
                     button.disabled = false;
@@ -4100,6 +4391,7 @@
                     label.innerText = 'AUTO';
                     label.className = 'mode-label auto-label';
                     addLogEntry('auto', 'Mode pakan ikan diubah ke <strong>OTOMATIS</strong>.');
+                    sendEsp32Command({ cmd: 'feeder_auto' });
                 } else {
                     timeIn.disabled = true;
                     freqIn.disabled = true;
@@ -4116,6 +4408,7 @@
         function updateWaterThreshold(val) {
             state.crop.threshold = parseInt(val);
             document.getElementById('val-water-threshold').innerText = val + '%';
+            sendEsp32Command({ cmd: 'set_threshold', val: parseInt(val) });
         }
 
         /* Actuator trigger functions */
@@ -4129,41 +4422,46 @@
                 sendEsp32Command({ cmd: 'pump_on' });
                 button.innerHTML = `<i class="fa-solid fa-xmark"></i> Matikan Penyiraman`;
                 button.classList.add('active-firing');
-                addLogEntry('manual', 'Penyiraman tanaman **dinyalakan manual** oleh pengguna.');
+                addLogEntry('manual', 'Penyiraman tanaman **dinyalakan manual** — Feeder servo & sensor suhu/kelembaban TETAP OTOMATIS.');
             } else {
                 // Turn pump OFF
                 state.crop.pumpActive = false;
                 sendEsp32Command({ cmd: 'pump_off' });
                 button.innerHTML = `<i class="fa-solid fa-droplet"></i> Siram Sekarang`;
                 button.classList.remove('active-firing');
-                addLogEntry('manual', 'Penyiraman tanaman **dimatikan manual** oleh pengguna.');
+                addLogEntry('manual', 'Penyiraman tanaman **dimatikan manual** — Feeder servo & sensor suhu/kelembaban TETAP OTOMATIS.');
             }
+            renderDashboardUI();
         }
 
         // Manual Feed Control Trigger
         function triggerManualFeed() {
             const button = document.getElementById('btn-feed-trigger');
             const durationInput = document.getElementById('sched-feed-dur');
-            const duration = parseInt(durationInput.value) || 5;
+            const duration = parseInt(durationInput.value) || 4;
 
             if (state.pond.feederActive) return; // already running
 
             state.pond.feederActive = true;
-            sendEsp32Command({ cmd: 'feeder_on' });
+            state.pond.servoAngle = 90;
+            sendEsp32Command({ cmd: 'feeder_feed', duration: duration * 1000 });
             button.disabled = true;
             button.innerHTML = `<i class="fa-solid fa-spinner fa-spin"></i> Memberi Pakan...`;
             button.classList.add('active-firing');
 
-            addLogEntry('manual', `Feeder pakan kolam ikan **diaktifkan manual** (${duration} detik).`);
+            addLogEntry('manual', `Feeder servo pakan **diaktifkan manual** (${duration} detik) — Pompa air irigasi & sensor suhu TETAP OTOMATIS.`);
+            renderDashboardUI();
 
             // Auto stop after duration
             setTimeout(() => {
                 state.pond.feederActive = false;
+                state.pond.servoAngle = 0;
                 sendEsp32Command({ cmd: 'feeder_off' });
                 button.disabled = false;
                 button.innerHTML = `<i class="fa-solid fa-bowl-food"></i> Beri Pakan Sekarang`;
                 button.classList.remove('active-firing');
-                addLogEntry('manual', 'Pemberian pakan manual selesai.');
+                addLogEntry('manual', 'Pemberian pakan manual selesai. Servo kembali standby 0°.');
+                renderDashboardUI();
             }, duration * 1000);
         }
 
@@ -4299,7 +4597,19 @@
                 }
             });
 
-            // Food Pellets trigger
+            // Food Pellets & Motor Servo Arm Dispenser
+            const servoArm = document.getElementById('svg-feeder-servo-arm');
+            const servoTxt = document.getElementById('svg-servo-status-text');
+            const curServoAngle = state.pond.servoAngle || (state.pond.feederActive ? 90 : 0);
+
+            if (servoArm) {
+                servoArm.style.transform = `rotate(${curServoAngle}deg)`;
+            }
+            if (servoTxt) {
+                servoTxt.textContent = `SERVO: ${curServoAngle}°`;
+                servoTxt.setAttribute('fill', state.pond.feederActive ? '#38bdf8' : '#94a3b8');
+            }
+
             foodPellets.forEach(pellet => {
                 if (state.pond.feederActive) {
                     pellet.classList.add('active');
@@ -4363,17 +4673,26 @@
                 pumpBadgeMain.innerText = 'Siaga';
             }
 
-            // 6. Render Feeder Pakan status
+            // 6. Render Feeder Pakan & Servo status
             const feederStatusBox = document.getElementById('status-feeder-box');
             const feederStatusBox2 = document.getElementById('status-feeder-box2');
+            const servoAngleDisplay = document.getElementById('servo-angle-display');
             if (state.pond.feederActive) {
                 feederStatusBox.className = 'actuator-glowing-status active';
-                feederStatusBox.innerText = 'ON';
+                feederStatusBox.innerText = 'ON (SERVO 90°)';
                 if (feederStatusBox2) { feederStatusBox2.className = 'actuator-glowing-status active'; feederStatusBox2.innerText = 'ON'; }
+                if (servoAngleDisplay) {
+                    servoAngleDisplay.className = 'actuator-glowing-status active';
+                    servoAngleDisplay.innerHTML = `<i class="fa-solid fa-arrows-rotate fa-spin"></i> 90° (Menebar Pakan)`;
+                }
             } else {
                 feederStatusBox.className = 'actuator-glowing-status inactive';
                 feederStatusBox.innerText = 'OFF';
                 if (feederStatusBox2) { feederStatusBox2.className = 'actuator-glowing-status inactive'; feederStatusBox2.innerText = 'OFF'; }
+                if (servoAngleDisplay) {
+                    servoAngleDisplay.className = 'actuator-glowing-status inactive';
+                    servoAngleDisplay.innerHTML = `0° (Standby Tutup)`;
+                }
             }
 
             // 7. Render Status Perangkat & Daya Card
@@ -4608,47 +4927,35 @@
 
             state.crop.light = sunIntensity * 72.0 + (sunIntensity > 0 ? (Math.random() - 0.5) * 5 : 0);
 
-            // F. Auto-Feeder Schedule Engine (When in AUTO)
+            // F. Auto-Feeder Engine (Otomatis & Terpadu)
+            // Bergerak otomatis secara periodik ATAU sesuai jadwal jam (Pompa & Sensor tetap aktif!)
             if (state.pond.feederAutoMode && !state.pond.feederActive) {
-                // Check time match for "Hour:Minute"
-                const schedTime = document.getElementById('sched-feed-time').value.trim();
-                const schedFreq = parseInt(document.getElementById('sched-feed-freq').value);
-                const schedDur = parseInt(document.getElementById('sched-feed-dur').value) || 5;
+                window._feedCycleCounter = (window._feedCycleCounter || 0) + 1;
+                const schedTimeEl = document.getElementById('sched-feed-time');
+                const schedTime = schedTimeEl ? schedTimeEl.value.trim() : '12:00';
+                const schedDurEl = document.getElementById('sched-feed-dur');
+                const schedDur = schedDurEl ? (parseInt(schedDurEl.value) || 4) : 4;
+                const [sh, sm] = schedTime.split(':').map(Number);
+                const isTimeMatch = (!isNaN(sh) && currentHour24 === sh && currentMin === sm);
+                // Siklus pakan berkala otomatis: setiap 20 interval tick simulasi (~30 detik)
+                const isIntervalMatch = (window._feedCycleCounter >= 20);
 
-                // Generate daily target times based on selected frequency
-                const targets = [];
-                const [schedHour, schedMin] = schedTime.split(':').map(Number);
+                if (isTimeMatch || isIntervalMatch) {
+                    window._feedCycleCounter = 0;
+                    state.pond.feederActive = true;
+                    state.pond.servoAngle = 90;
+                    sendEsp32Command({ cmd: 'feeder_feed', duration: schedDur * 1000 });
+                    addLogEntry('auto', `<strong>OTOMASI FEEDER:</strong> Motor Servo berputar (90°) menabur pelet pakan ikan. (Pompa irigasi & sensor suhu tetap beroperasi).`);
+                    renderDashboardUI();
 
-                if (!isNaN(schedHour)) {
-                    targets.push({ h: schedHour, m: schedMin });
-
-                    // If 2x daily: add a second feed 12 hours later
-                    if (schedFreq === 2) {
-                        targets.push({ h: (schedHour + 12) % 24, m: schedMin });
-                    }
-                    // If 3x daily: add feeds spaced by 8 hours
-                    else if (schedFreq === 3) {
-                        targets.push({ h: (schedHour + 8) % 24, m: schedMin });
-                        targets.push({ h: (schedHour + 16) % 24, m: schedMin });
-                    }
+                    setTimeout(() => {
+                        state.pond.feederActive = false;
+                        state.pond.servoAngle = 0;
+                        sendEsp32Command({ cmd: 'feeder_off' });
+                        addLogEntry('auto', 'Pemberian pakan otomatis selesai. Servo kembali standby 0°.');
+                        renderDashboardUI();
+                    }, schedDur * 1000);
                 }
-
-                // Test target matches
-                targets.forEach(tgt => {
-                    if (currentHour24 === tgt.h && currentMin === tgt.m) {
-                        // Activate feeder
-                        state.pond.feederActive = true;
-                        sendEsp32Command({ cmd: 'feeder_on' });
-                        addLogEntry('auto', `<strong>JADWAL PAKAN:</strong> Feeder otomatis aktif sesuai jadwal (${pad(tgt.h)}:${pad(tgt.m)}) untuk ${schedDur} detik.`);
-
-                        // Stop feeder after duration
-                        setTimeout(() => {
-                            state.pond.feederActive = false;
-                            sendEsp32Command({ cmd: 'feeder_off' });
-                            addLogEntry('auto', 'Pemberian pakan otomatis selesai.');
-                        }, schedDur * 1000);
-                    }
-                });
             }
 
             // G. Update dynamic UI panels
